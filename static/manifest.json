@@ -1,0 +1,24 @@
+{
+	"name": "MBC One OS",
+	"short_name": "MBC One",
+	"description": "Restaurant Management System for Malabar Biriyani Center",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#F8F9FA",
+	"theme_color": "#1B5E20",
+	"orientation": "any",
+	"icons": [
+		{
+			"src": "/app-logo-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/app-logo-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any maskable"
+		}
+	]
+}
