@@ -1,193 +1,231 @@
 <script lang="ts">
-	import { currentEmployee, tasks, stockItems, kitchenOrders, notifications } from '$lib/data/demo';
-	import Badge from '$lib/components/common/Badge.svelte';
-	import { toasts } from '$lib/stores/toast';
+	import { onMount } from 'svelte';
+	import { supabase } from '$lib/supabase';
+	import { teamUser } from '$lib/stores/auth';
 
-	const quickActions = [
-		{ label: 'New Order', icon: '📝', action: () => toasts.add('New order screen (demo)', 'info') },
-		{ label: 'Kitchen Queue', icon: '🍳', action: () => window.location.href = '/team/mobile/kitchen' },
-		{ label: 'Check Stock', icon: '📦', action: () => toasts.add('Stock check feature (demo)', 'info') },
-		{ label: 'Clock In/Out', icon: '⏰', action: () => toasts.add('Clocked in at 9:00 AM (demo)', 'success') },
-		{ label: 'Report Issue', icon: '⚠️', action: () => toasts.add('Issue reported (demo)', 'success') },
-		{ label: 'View Tasks', icon: '✅', action: () => window.location.href = '/team/mobile/tasks' }
-	];
+	// Live time
+	let currentTime = $state('');
+	let currentDate = $state('');
 
-	const lowStock = stockItems.filter(s => s.status !== 'ok');
-	const pendingTasks = tasks.filter(t => t.status !== 'completed');
-	const unreadNotifs = notifications.filter(n => !n.read);
+	function updateTime() {
+		const now = new Date();
+		currentTime = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+		currentDate = now.toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
+	}
+
+	// Shift info
+	type ShiftSlot = { start_time: string; end_time: string; is_next_day: boolean; total_hours: number; };
+	type TodayShift = { type: string; shifts: ShiftSlot[]; total_hours: number; label: string; weekday?: string; } | null;
+	let todayShift = $state<TodayShift>(null);
+	let shiftLoading = $state(true);
+
+	let userId = $state('');
+	teamUser.subscribe(u => { userId = u?.id || ''; });
+
+	async function loadTodayShift() {
+		if (!userId) { shiftLoading = false; return; }
+		shiftLoading = true;
+		const { data, error } = await supabase.rpc('rpc_get_today_shift', { p_user_id: userId });
+		shiftLoading = false;
+		if (!error && data?.success) {
+			todayShift = data.data;
+		}
+	}
+
+	onMount(() => {
+		updateTime();
+		const timer = setInterval(updateTime, 1000);
+		loadTodayShift();
+		return () => clearInterval(timer);
+	});
 </script>
 
-<div class="team-dashboard">
-	<div class="dashboard-header">
-		<div class="header-content">
-			<div class="header-left">
-				<img src="/App Logo.png" alt="MBC One OS" class="app-logo" />
-				<div>
-					<h1>{currentEmployee.name}</h1>
-					<span class="role">{currentEmployee.role}</span>
-				</div>
-			</div>
-			<div class="header-right">
-				<Badge label="On Shift" variant="success" />
-				{#if unreadNotifs.length > 0}
-					<span class="notif-badge">{unreadNotifs.length}</span>
-				{/if}
-			</div>
+<div class="mobile-home">
+	<!-- Info Cards -->
+	<div class="info-cards">
+		<div class="info-card time-card">
+			<div class="info-time">{currentTime}</div>
+			<div class="info-date">{currentDate}</div>
 		</div>
-		<div class="shift-info">
-			<span>🕐 {currentEmployee.shift}</span>
+		<div class="info-card shift-card">
+			{#if shiftLoading}
+				<div class="shift-loading">Loading...</div>
+			{:else if todayShift && todayShift.shifts}
+				<div class="shift-label">{todayShift.label}</div>
+				<div class="shift-times">
+					{#each todayShift.shifts as s, i}
+						{#if i > 0}<span class="shift-divider">|</span>{/if}
+						<span class="shift-slot">{s.start_time} – {s.end_time}{#if s.is_next_day}<span class="nd">+1</span>{/if}</span>
+					{/each}
+				</div>
+				<div class="shift-total">{todayShift.total_hours}h total</div>
+			{:else}
+				<div class="shift-none">No shift assigned</div>
+			{/if}
 		</div>
 	</div>
 
-	<section class="section">
-		<h2>Quick Actions</h2>
-		<div class="actions-grid">
-			{#each quickActions as qa}
-				<button class="action-card" onclick={qa.action}>
-					<span class="action-icon">{qa.icon}</span>
-					<span class="action-label">{qa.label}</span>
-				</button>
-			{/each}
-		</div>
-	</section>
-
-	<section class="section">
-		<div class="section-header">
-			<h2>Assigned Tasks</h2>
-			<a href="/team/mobile/tasks" class="see-all">See all →</a>
-		</div>
-		<div class="task-list">
-			{#each pendingTasks.slice(0, 3) as task (task.id)}
-				<div class="task-card">
-					<div class="task-info">
-						<span class="task-title">{task.title}</span>
-						<span class="task-meta">{task.assignee} • Due: {task.dueTime}</span>
-					</div>
-					<Badge
-						label={task.priority}
-						variant={task.priority === 'high' ? 'danger' : task.priority === 'medium' ? 'warning' : 'default'}
-					/>
-				</div>
-			{/each}
-		</div>
-	</section>
-
-	<section class="section">
-		<div class="section-header">
-			<h2>Kitchen Status</h2>
-			<a href="/team/mobile/kitchen" class="see-all">See all →</a>
-		</div>
-		<div class="kitchen-list">
-			{#each kitchenOrders.slice(0, 3) as order}
-				<div class="kitchen-card">
-					<div class="kitchen-info">
-						<span class="kitchen-id">{order.id}</span>
-						<span class="kitchen-items">{order.items.join(', ')}</span>
-					</div>
-					<Badge
-						label={order.status}
-						variant={order.status === 'ready' ? 'success' : order.status === 'preparing' ? 'accent' : 'warning'}
-					/>
-				</div>
-			{/each}
-		</div>
-	</section>
-
-	{#if lowStock.length > 0}
-		<section class="section">
-			<h2>⚠️ Stock Alerts</h2>
-			<div class="stock-alerts">
-				{#each lowStock as item (item.id)}
-					<div class="stock-alert">
-						<span>{item.name}</span>
-						<span class="stock-qty" class:critical={item.status === 'critical'}>
-							{item.quantity} {item.unit} (min: {item.minLevel})
-						</span>
-					</div>
-				{/each}
-			</div>
-		</section>
-	{/if}
-
-	<section class="section">
-		<h2>Notifications</h2>
-		<div class="notif-list">
-			{#each notifications.slice(0, 3) as n (n.id)}
-				<div class="notif-card" class:unread={!n.read}>
-					<span class="notif-title">{n.title}</span>
-					<span class="notif-msg">{n.message}</span>
-					<span class="notif-time">{n.time}</span>
-				</div>
-			{/each}
-		</div>
-	</section>
+	<!-- Action Buttons -->
+	<div class="btn-grid">
+		<a href="/team/mobile/clock" class="grid-btn">
+			<span class="grid-icon">⏰</span>
+			<span class="grid-label">Clock In / Out</span>
+		</a>
+		<a href="/team/mobile/tasks" class="grid-btn">
+			<span class="grid-icon">✅</span>
+			<span class="grid-label">Tasks</span>
+		</a>
+		<a href="/team/mobile/leave" class="grid-btn">
+			<span class="grid-icon">📋</span>
+			<span class="grid-label">Leave Request</span>
+		</a>
+		<a href="/team/mobile/checklist" class="grid-btn">
+			<span class="grid-icon">☑️</span>
+			<span class="grid-label">Check List</span>
+		</a>
+		<a href="/team/mobile/requests" class="grid-btn">
+			<span class="grid-icon">📩</span>
+			<span class="grid-label">Requests</span>
+		</a>
+		<a href="/team/mobile/orders" class="grid-btn">
+			<span class="grid-icon">📦</span>
+			<span class="grid-label">Orders</span>
+		</a>
+		<a href="/team/mobile/break" class="grid-btn">
+			<span class="grid-icon">☕</span>
+			<span class="grid-label">Break Log</span>
+		</a>
+		<a href="/team/mobile/incidents" class="grid-btn">
+			<span class="grid-icon">⚠️</span>
+			<span class="grid-label">Incidents</span>
+		</a>
+	</div>
 </div>
 
 <style>
-	.team-dashboard { padding: 0; }
-	.dashboard-header {
-		background: linear-gradient(135deg, var(--color-primary-dark), var(--color-primary));
-		padding: var(--space-6) var(--space-5) var(--space-5);
-		color: white;
-		border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+	.mobile-home {
+		padding: 0;
 	}
-	.header-content { display: flex; justify-content: space-between; align-items: flex-start; }
-	.header-left { display: flex; gap: var(--space-3); align-items: center; }
-	.app-logo { height: 40px; border-radius: var(--radius-sm); }
-	h1 { font-size: var(--font-size-xl); }
-	.role { font-size: var(--font-size-sm); opacity: 0.85; }
-	.header-right { display: flex; align-items: center; gap: var(--space-2); }
-	.notif-badge {
-		width: 22px; height: 22px; background: var(--color-danger);
-		border-radius: var(--radius-full); font-size: 11px; font-weight: var(--font-weight-bold);
-		display: flex; align-items: center; justify-content: center;
+
+	/* Info Cards */
+	.info-cards {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 12px;
+		margin-bottom: 16px;
 	}
-	.shift-info {
-		margin-top: var(--space-3); font-size: var(--font-size-sm); opacity: 0.85;
-		padding: var(--space-2) var(--space-3); background: rgba(255,255,255,0.15);
-		border-radius: var(--radius-md); display: inline-block;
+	.info-card {
+		padding: 16px;
+		border-radius: 12px;
+		background: white;
+		border: 1px solid #e8e8e8;
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 	}
-	.section { padding: var(--space-5); }
-	.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3); }
-	h2 { font-size: var(--font-size-lg); margin-bottom: var(--space-3); }
-	.see-all { font-size: var(--font-size-sm); color: var(--color-primary); }
-	.actions-grid {
-		display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3);
+	.time-card {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 4px;
 	}
-	.action-card {
-		display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
-		padding: var(--space-4); background: var(--color-white);
-		border-radius: var(--radius-lg); box-shadow: var(--shadow-xs);
-		transition: all var(--transition-fast);
+	.info-time {
+		font-size: 20px;
+		font-weight: 700;
+		color: #0E5A3C;
+		font-variant-numeric: tabular-nums;
 	}
-	.action-card:hover { box-shadow: var(--shadow-md); }
-	.action-icon { font-size: 1.5rem; }
-	.action-label { font-size: var(--font-size-xs); font-weight: var(--font-weight-medium); text-align: center; }
-	.task-list, .kitchen-list, .notif-list { display: flex; flex-direction: column; gap: var(--space-3); }
-	.task-card, .kitchen-card {
-		display: flex; justify-content: space-between; align-items: center;
-		padding: var(--space-3) var(--space-4); background: var(--color-white);
-		border-radius: var(--radius-md); box-shadow: var(--shadow-xs);
+	.info-date {
+		font-size: 11px;
+		color: #666;
+		text-align: center;
 	}
-	.task-info, .kitchen-info { display: flex; flex-direction: column; gap: 2px; }
-	.task-title, .kitchen-id { font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); }
-	.task-meta { font-size: var(--font-size-xs); color: var(--color-text-secondary); }
-	.kitchen-items { font-size: var(--font-size-xs); color: var(--color-text-secondary); }
-	.stock-alerts { display: flex; flex-direction: column; gap: var(--space-2); }
-	.stock-alert {
-		display: flex; justify-content: space-between; padding: var(--space-3);
-		background: var(--color-white); border-radius: var(--radius-md);
-		font-size: var(--font-size-sm);
+	.shift-card {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 4px;
 	}
-	.stock-qty { color: var(--color-warning); font-weight: var(--font-weight-medium); }
-	.stock-qty.critical { color: var(--color-danger); }
-	.notif-card {
-		display: flex; flex-direction: column; gap: 2px;
-		padding: var(--space-3); background: var(--color-white);
-		border-radius: var(--radius-md); box-shadow: var(--shadow-xs);
+	.shift-label {
+		font-size: 10px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		color: #888;
 	}
-	.notif-card.unread { border-left: 3px solid var(--color-primary); }
-	.notif-title { font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); }
-	.notif-msg { font-size: var(--font-size-xs); color: var(--color-text-secondary); }
-	.notif-time { font-size: var(--font-size-xs); color: var(--color-text-light); }
+	.shift-times {
+		font-size: 12px;
+		font-weight: 600;
+		color: #2b2b2b;
+		text-align: center;
+	}
+	.shift-slot {
+		white-space: nowrap;
+	}
+	.shift-divider {
+		color: #ccc;
+		margin: 0 3px;
+	}
+	.nd {
+		font-size: 9px;
+		background: #fef3c7;
+		color: #92400e;
+		padding: 0 3px;
+		border-radius: 3px;
+		margin-left: 2px;
+		font-weight: 600;
+	}
+	.shift-total {
+		font-size: 11px;
+		font-weight: 600;
+		color: #0E5A3C;
+	}
+	.shift-none {
+		font-size: 12px;
+		color: #999;
+		font-style: italic;
+	}
+	.shift-loading {
+		font-size: 12px;
+		color: #aaa;
+	}
+
+	/* Button Grid */
+	.btn-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 12px;
+	}
+	.grid-btn {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		padding: 24px 12px;
+		background: white;
+		border-radius: 12px;
+		border: 1px solid #e8e8e8;
+		text-decoration: none;
+		color: #2b2b2b;
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+		transition: all 0.2s;
+	}
+	.grid-btn:hover {
+		border-color: #0E5A3C;
+		box-shadow: 0 4px 12px rgba(14, 90, 60, 0.1);
+		transform: translateY(-1px);
+	}
+	.grid-btn:active {
+		transform: translateY(0);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+	}
+	.grid-icon {
+		font-size: 28px;
+	}
+	.grid-label {
+		font-size: 13px;
+		font-weight: 600;
+		text-align: center;
+	}
 </style>

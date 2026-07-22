@@ -3,31 +3,31 @@
    ============================================ */
 
 :root {
-	/* Brand Colors - extracted from logo */
-	--color-primary: #1B5E20;
-	--color-primary-light: #2E7D32;
-	--color-primary-dark: #0D3B12;
-	--color-primary-50: #E8F5E9;
-	--color-primary-100: #C8E6C9;
+	/* Brand Colors */
+	--color-primary: #0E5A3C;
+	--color-primary-light: #0A3F2C;
+	--color-primary-dark: #0A3F2C;
+	--color-primary-50: #e6f0eb;
+	--color-primary-100: #c2dbd0;
 
-	--color-accent: #C5961A;
-	--color-accent-light: #D4A843;
-	--color-accent-dark: #A07B15;
+	--color-accent: #C9A24D;
+	--color-accent-light: #d4b06a;
+	--color-accent-dark: #A87A28;
 
 	--color-white: #FFFFFF;
-	--color-bg: #F8F9FA;
-	--color-bg-alt: #F1F3F5;
+	--color-bg: #F8F8F5;
+	--color-bg-alt: #F0F0ED;
 	--color-surface: #FFFFFF;
-	--color-surface-hover: #F8F9FA;
+	--color-surface-hover: #F8F8F5;
 
-	--color-text: #212529;
+	--color-text: #2B2B2B;
 	--color-text-secondary: #6C757D;
 	--color-text-light: #ADB5BD;
 	--color-text-on-primary: #FFFFFF;
 	--color-text-on-accent: #FFFFFF;
 
-	--color-border: #DEE2E6;
-	--color-border-light: #E9ECEF;
+	--color-border: #E8E8E8;
+	--color-border-light: #E8E8E8;
 
 	--color-success: #28A745;
 	--color-warning: #FFC107;
@@ -87,7 +87,7 @@
 
 	/* Layout */
 	--header-height: 64px;
-	--sidebar-width: 260px;
+	--sidebar-width: 182px;
 	--sidebar-collapsed-width: 72px;
 	--bottom-nav-height: 64px;
 	--max-width: 1280px;
