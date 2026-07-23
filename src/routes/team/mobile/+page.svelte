@@ -20,7 +20,7 @@
 	let shiftLoading = $state(true);
 
 	let userId = $state('');
-	teamUser.subscribe(u => { userId = u?.id || ''; });
+	teamUser.subscribe(u => { userId = u?.user_id || ''; });
 
 	async function loadTodayShift() {
 		if (!userId) { shiftLoading = false; return; }
@@ -51,14 +51,13 @@
 			{#if shiftLoading}
 				<div class="shift-loading">Loading...</div>
 			{:else if todayShift && todayShift.shifts}
-				<div class="shift-label">{todayShift.label}</div>
+				<div class="shift-label">Today's Shift</div>
 				<div class="shift-times">
 					{#each todayShift.shifts as s, i}
 						{#if i > 0}<span class="shift-divider">|</span>{/if}
 						<span class="shift-slot">{s.start_time} – {s.end_time}{#if s.is_next_day}<span class="nd">+1</span>{/if}</span>
 					{/each}
 				</div>
-				<div class="shift-total">{todayShift.total_hours}h total</div>
 			{:else}
 				<div class="shift-none">No shift assigned</div>
 			{/if}
@@ -70,34 +69,6 @@
 		<a href="/team/mobile/clock" class="grid-btn">
 			<span class="grid-icon">⏰</span>
 			<span class="grid-label">Clock In / Out</span>
-		</a>
-		<a href="/team/mobile/tasks" class="grid-btn">
-			<span class="grid-icon">✅</span>
-			<span class="grid-label">Tasks</span>
-		</a>
-		<a href="/team/mobile/leave" class="grid-btn">
-			<span class="grid-icon">📋</span>
-			<span class="grid-label">Leave Request</span>
-		</a>
-		<a href="/team/mobile/checklist" class="grid-btn">
-			<span class="grid-icon">☑️</span>
-			<span class="grid-label">Check List</span>
-		</a>
-		<a href="/team/mobile/requests" class="grid-btn">
-			<span class="grid-icon">📩</span>
-			<span class="grid-label">Requests</span>
-		</a>
-		<a href="/team/mobile/orders" class="grid-btn">
-			<span class="grid-icon">📦</span>
-			<span class="grid-label">Orders</span>
-		</a>
-		<a href="/team/mobile/break" class="grid-btn">
-			<span class="grid-icon">☕</span>
-			<span class="grid-label">Break Log</span>
-		</a>
-		<a href="/team/mobile/incidents" class="grid-btn">
-			<span class="grid-icon">⚠️</span>
-			<span class="grid-label">Incidents</span>
 		</a>
 	</div>
 </div>

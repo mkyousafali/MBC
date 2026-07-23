@@ -1,9 +1,35 @@
 <script lang="ts">
-	import { teamUser } from '$lib/stores/auth';
+	import { teamUser, clearTeamUser, userPermissions } from '$lib/stores/auth';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 
 	let { children } = $props();
 	let userName = $state('');
-	teamUser.subscribe(u => { userName = u?.full_name || 'Team Member'; });
+	let currentPath = $state('');
+	let isSA = $state(false);
+	let showMasters = $state(false);
+
+	const MASTERS_KEYS = ['settings.management.users', 'hr.operations.employee_shifts', 'inventory.manage.production', 'inventory.manage.suppliers', 'inventory.operations.po'];
+
+	teamUser.subscribe(u => {
+		userName = u?.full_name || 'Team Member';
+		isSA = u?.is_super_admin === true;
+	});
+	page.subscribe(p => { currentPath = p.url.pathname; });
+	userPermissions.subscribe(perms => {
+		showMasters = isSA || perms.some((p: any) => MASTERS_KEYS.includes(p.resource_key) && p.can_view);
+	});
+
+	function goBack() {
+		history.back();
+	}
+
+	function logout() {
+		if (confirm('Are you sure you want to logout?')) {
+			clearTeamUser();
+			goto('/');
+		}
+	}
 </script>
 
 <svelte:head>
@@ -13,13 +39,29 @@
 <div class="team-mobile-layout">
 	<!-- Top Bar -->
 	<header class="top-bar">
-		<span class="top-bar-name">{userName}</span>
-		<a href="/team/mobile/notifications" class="top-bar-notif" title="Notifications">
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-				<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-				<path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-			</svg>
-		</a>
+		<div class="top-bar-left">
+			{#if currentPath !== '/team/mobile'}
+				<button class="back-btn" onclick={goBack}>
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+				</button>
+			{/if}
+			<span class="top-bar-name">{userName}</span>
+		</div>
+		<div class="top-bar-right">
+			<a href="/team/mobile/notifications" class="top-bar-icon" title="Notifications">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+					<path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+				</svg>
+			</a>
+			<button class="top-bar-icon" title="Logout" onclick={logout}>
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+					<polyline points="16 17 21 12 16 7"/>
+					<line x1="21" y1="12" x2="9" y2="12"/>
+				</svg>
+			</button>
+		</div>
 	</header>
 
 	<main class="team-mobile-main">
@@ -28,10 +70,16 @@
 
 	<!-- Bottom Bar -->
 	<nav class="bottom-bar">
-		<a href="/team/mobile" class="bottom-btn active">
+		<a href="/team/mobile" class="bottom-btn" class:active={currentPath === '/team/mobile'}>
 			<span class="bottom-icon">🏠</span>
 			<span class="bottom-label">Home</span>
 		</a>
+		{#if showMasters}
+			<a href="/team/mobile/masters" class="bottom-btn" class:active={currentPath.startsWith('/team/mobile/masters')}>
+				<span class="bottom-icon">📋</span>
+				<span class="bottom-label">Masters</span>
+			</a>
+		{/if}
 	</nav>
 </div>
 
@@ -56,20 +104,48 @@
 		color: white;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 	}
+	.top-bar-left {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+	.back-btn {
+		background: none;
+		border: none;
+		color: white;
+		cursor: pointer;
+		padding: 4px;
+		display: flex;
+		align-items: center;
+		border-radius: 6px;
+		transition: background 0.2s;
+	}
+	.back-btn:hover {
+		background: rgba(255, 255, 255, 0.15);
+	}
 	.top-bar-name {
 		font-size: 15px;
 		font-weight: 600;
 		letter-spacing: 0.2px;
 	}
-	.top-bar-notif {
+	.top-bar-right {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+	.top-bar-icon {
 		color: white;
+		background: none;
+		border: none;
 		display: flex;
 		align-items: center;
 		padding: 4px;
 		border-radius: 6px;
+		cursor: pointer;
 		transition: background 0.2s;
+		text-decoration: none;
 	}
-	.top-bar-notif:hover {
+	.top-bar-icon:hover {
 		background: rgba(255, 255, 255, 0.15);
 	}
 

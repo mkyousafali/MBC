@@ -7,6 +7,10 @@
 	import HRMasterWindow from '$lib/components/desktop-team/windows/HRMasterWindow.svelte';
 	import EmployeeShiftsWindow from '$lib/components/desktop-team/windows/EmployeeShiftsWindow.svelte';
 	import SecurityCodeWindow from '$lib/components/desktop-team/windows/SecurityCodeWindow.svelte';
+	import RawAttendanceWindow from '$lib/components/desktop-team/windows/RawAttendanceWindow.svelte';
+	import ProductsWindow from '$lib/components/desktop-team/windows/ProductsWindow.svelte';
+	import SuppliersWindow from '$lib/components/desktop-team/windows/SuppliersWindow.svelte';
+	import POWindow from '$lib/components/desktop-team/windows/POWindow.svelte';
 
 	const componentMap: Record<string, { component: any; title: string; icon: string }> = {
 		users: { component: UsersWindow, title: 'Users', icon: '👥' },
@@ -15,7 +19,11 @@
 		audit_logs: { component: AuditLogsWindow, title: 'Audit Logs', icon: '📜' },
 		hr_master: { component: HRMasterWindow, title: 'Master', icon: '👤' },
 		employee_shifts: { component: EmployeeShiftsWindow, title: 'Employee Shifts', icon: '🕰️' },
-		security_code: { component: SecurityCodeWindow, title: 'Security Code', icon: '🔐' }
+		security_code: { component: SecurityCodeWindow, title: 'Security Code', icon: '🔐' },
+		raw_attendance: { component: RawAttendanceWindow, title: 'Raw Attendance', icon: '📋' },
+		production: { component: ProductsWindow, title: 'Products', icon: '📦' },
+		suppliers: { component: SuppliersWindow, title: 'Suppliers', icon: '🚚' },
+		po: { component: POWindow, title: 'Purchase Orders', icon: '📋' }
 	};
 
 	const windowId = $derived($page.params.id);

@@ -14,6 +14,10 @@
 	import HRMasterWindow from '$lib/components/desktop-team/windows/HRMasterWindow.svelte';
 	import EmployeeShiftsWindow from '$lib/components/desktop-team/windows/EmployeeShiftsWindow.svelte';
 	import SecurityCodeWindow from '$lib/components/desktop-team/windows/SecurityCodeWindow.svelte';
+	import RawAttendanceWindow from '$lib/components/desktop-team/windows/RawAttendanceWindow.svelte';
+	import ProductsWindow from '$lib/components/desktop-team/windows/ProductsWindow.svelte';
+	import SuppliersWindow from '$lib/components/desktop-team/windows/SuppliersWindow.svelte';
+	import POWindow from '$lib/components/desktop-team/windows/POWindow.svelte';
 
 	let { children } = $props();
 
@@ -24,7 +28,11 @@
 		AuditLogsWindow,
 		HRMasterWindow,
 		EmployeeShiftsWindow,
-		SecurityCodeWindow
+		SecurityCodeWindow,
+		RawAttendanceWindow,
+		ProductsWindow,
+		SuppliersWindow,
+		POWindow
 	};
 
 	// Refresh permissions on page load and on window focus

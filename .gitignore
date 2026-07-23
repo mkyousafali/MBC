@@ -7,3 +7,4 @@ build
 !.env.example
 package-lock.json
 DATABASE.md
+security-code-app/

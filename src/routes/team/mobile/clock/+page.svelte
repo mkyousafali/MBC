@@ -134,14 +134,6 @@
 </script>
 
 <div class="clock-page">
-	<!-- Header -->
-	<div class="clock-header">
-		<button class="back-btn" onclick={goHome}>
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
-		</button>
-		<h1>Clock In / Out</h1>
-	</div>
-
 	<!-- Loading -->
 	{#if state === 'loading'}
 		<div class="center-state">

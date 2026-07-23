@@ -18,10 +18,14 @@
 		{ key: 'hr.management.master', section: 'HR', sub: 'Management', id: 'hr_master', title: 'Master', icon: '👤', component: 'HRMasterWindow' },
 		{ key: 'hr.operations.employee_shifts', section: 'HR', sub: 'Operations', id: 'employee_shifts', title: 'Employee Shifts', icon: '🕰️', component: 'EmployeeShiftsWindow' },
 		{ key: 'hr.operations.security_code', section: 'HR', sub: 'Operations', id: 'security_code', title: 'Security Code', icon: '🔐', component: 'SecurityCodeWindow' },
+		{ key: 'hr.reports.raw_attendance', section: 'HR', sub: 'Reports', id: 'raw_attendance', title: 'Raw Attendance', icon: '📋', component: 'RawAttendanceWindow' },
 		{ key: 'settings.management.users', section: 'Settings', sub: 'Management', id: 'users', title: 'Users', icon: '👥', component: 'UsersWindow' },
 		{ key: 'settings.management.branches', section: 'Settings', sub: 'Management', id: 'branches', title: 'Branches', icon: '🏢', component: 'BranchesWindow' },
 		{ key: 'settings.management.permissions', section: 'Settings', sub: 'Management', id: 'permissions', title: 'Permissions', icon: '🔐', component: 'PermissionsWindow' },
-		{ key: 'settings.reports.audit_logs', section: 'Settings', sub: 'Reports', id: 'audit_logs', title: 'Audit Logs', icon: '📜', component: 'AuditLogsWindow' }
+		{ key: 'settings.reports.audit_logs', section: 'Settings', sub: 'Reports', id: 'audit_logs', title: 'Audit Logs', icon: '📜', component: 'AuditLogsWindow' },
+		{ key: 'inventory.manage.production', section: 'Inventory', sub: 'Manage', id: 'production', title: 'Products', icon: '📦', component: 'ProductsWindow' },
+		{ key: 'inventory.manage.suppliers', section: 'Inventory', sub: 'Manage', id: 'suppliers', title: 'Suppliers', icon: '🚚', component: 'SuppliersWindow' },
+		{ key: 'inventory.operations.po', section: 'Inventory', sub: 'Operations', id: 'po', title: 'Purchase Orders', icon: '📋', component: 'POWindow' }
 	];
 
 	// Build visible navigation tree from permissions (reactive via perms + currentUser)
@@ -73,7 +77,7 @@
 	}
 
 	// Section icons
-	const sectionIcons: Record<string, string> = { 'Settings': '⚙️' };
+	const sectionIcons: Record<string, string> = { 'Settings': '⚙️', 'HR': '👔' };
 </script>
 
 <aside class="sidebar" class:collapsed>
