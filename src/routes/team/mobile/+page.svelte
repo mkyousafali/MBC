@@ -85,8 +85,6 @@
 		height: 100%;
 		overflow-y: auto;
 		box-sizing: border-box;
-		display: flex;
-		flex-direction: column;
 	}
 
 	/* Info Cards */
@@ -213,8 +211,8 @@
 
 	/* Home Logos Footer */
 	.home-logos {
-		margin-top: auto;
-		padding: 24px 8px 16px;
+		margin-top: 16px;
+		padding: 12px 8px 16px;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
