@@ -697,10 +697,15 @@
 											<span class="upload-spinner">⏳</span>
 											<span>Uploading...</span>
 										{:else}
-											<span class="upload-icon">📷</span>
-											<span>Upload</span>
+											<span class="upload-icon">�</span>
+											<span>Gallery</span>
 										{/if}
 										<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onchange={handleBaseImageUpload} hidden />
+									</label>
+									<label class="upload-box camera-box" class:uploading={baseUnitImageUploading}>
+										<span class="upload-icon">📷</span>
+										<span>Camera</span>
+										<input type="file" accept="image/*" capture="environment" onchange={handleBaseImageUpload} hidden />
 									</label>
 									<button class="search-img-btn" type="button" onclick={() => openImageSearch((url) => { baseUnitImage = url; toasts.add('Image selected', 'success'); })}>🔍 Search</button>
 								</div>
@@ -742,8 +747,12 @@
 									</div>
 								{:else}
 									<label class="upload-box-sm">
-										<span>📷 Image</span>
+										<span>� Gallery</span>
 										<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onchange={(e) => handleVariantImageUpload(e, v, () => { baseVariants = [...baseVariants]; })} hidden />
+									</label>
+									<label class="upload-box-sm camera-box-sm">
+										<span>📷 Camera</span>
+										<input type="file" accept="image/*" capture="environment" onchange={(e) => handleVariantImageUpload(e, v, () => { baseVariants = [...baseVariants]; })} hidden />
 									</label>
 									<button class="search-img-btn-sm" type="button" onclick={() => openImageSearch((url) => { baseVariants[i].image_url = url; baseVariants = [...baseVariants]; toasts.add('Image selected', 'success'); })}>🔍</button>
 								{/if}
@@ -823,8 +832,12 @@
 										</div>
 									{:else}
 										<label class="upload-box-sm">
-											<span>📷 Upload</span>
+											<span>� Gallery</span>
 											<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onchange={(e) => handleAdditionalUnitImageUpload(e, ui)} hidden />
+										</label>
+										<label class="upload-box-sm camera-box-sm">
+											<span>📷 Camera</span>
+											<input type="file" accept="image/*" capture="environment" onchange={(e) => handleAdditionalUnitImageUpload(e, ui)} hidden />
 										</label>
 										<button class="search-img-btn-sm" type="button" onclick={() => openImageSearch((url) => { additionalUnits[ui].image_url = url; additionalUnits = [...additionalUnits]; toasts.add('Image selected', 'success'); })}>🔍</button>
 									{/if}
@@ -854,8 +867,12 @@
 													</div>
 												{:else}
 													<label class="upload-box-sm">
-														<span>📷 Image</span>
+														<span>� Gallery</span>
 														<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onchange={(e) => handleVariantImageUpload(e, uv, () => { additionalUnits = [...additionalUnits]; })} hidden />
+													</label>
+													<label class="upload-box-sm camera-box-sm">
+														<span>📷 Camera</span>
+														<input type="file" accept="image/*" capture="environment" onchange={(e) => handleVariantImageUpload(e, uv, () => { additionalUnits = [...additionalUnits]; })} hidden />
 													</label>
 													<button class="search-img-btn-sm" type="button" onclick={() => openImageSearch((url) => { additionalUnits[ui].variants[vi].image_url = url; additionalUnits = [...additionalUnits]; toasts.add('Image selected', 'success'); })}>🔍</button>
 												{/if}

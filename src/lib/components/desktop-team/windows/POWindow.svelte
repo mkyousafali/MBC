@@ -79,6 +79,26 @@
 	}
 
 	function addProductToGeneral(prod: SearchProduct) {
+		if (activeTab === 'supplier' && selectedSupplierId) {
+			if (supplierItems.some(i => i.product_id === prod.id)) {
+				toasts.add('Already in list', 'info');
+				return;
+			}
+			const baseUnit = prod.units?.find((u: any) => u.is_base_unit) || prod.units?.[0];
+			supplierItems = [...supplierItems, {
+				product_id: prod.id,
+				product_code: prod.product_code,
+				product_name: prod.product_name,
+				selected_unit: baseUnit?.unit_name || '',
+				base_unit_qty: 1,
+				quantity: 1
+			}];
+			showProductSearch = false;
+			productSearchQuery = '';
+			productSearchResults = [];
+			return;
+		}
+
 		if (isEditingDetail) {
 			if (editItems.some(i => i.product_id === prod.id)) {
 				toasts.add('Already in PO', 'info');
@@ -550,6 +570,11 @@
 				<div class="supplier-sticky-top">
 					<div class="section-header">
 						<h3>🚚 Supplier Purchase Order</h3>
+						{#if permAdd && selectedSupplierId}
+							<button class="btn-add-product" onclick={() => { showProductSearch = true; productSearchQuery = ''; productSearchResults = []; }}>
+								+ Add Product
+							</button>
+						{/if}
 					</div>
 
 					<div class="supplier-select-bar">
@@ -560,6 +585,9 @@
 								<option value={sup.id}>{sup.supplier_name} ({sup.supplier_code})</option>
 							{/each}
 						</select>
+						{#if selectedSupplierId}
+							<button class="btn-add-product" onclick={() => { showProductSearch = true; }}>+ Add Product</button>
+						{/if}
 					</div>
 				</div>
 
