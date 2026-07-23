@@ -280,13 +280,17 @@
 		jtSearch.trim() ? jobTitles.filter(jt => jt.title_name.toLowerCase().includes(jtSearch.toLowerCase())) : jobTitles
 	);
 
+	let jtPickerCreateOpen = $state(false);
+	let jtPickerEditOpen = $state(false);
+
 	function closeCustomPickers(e: MouseEvent) {
 		const target = e.target as HTMLElement;
 		if (!target.closest('.branch-picker')) {
 			document.querySelectorAll('.branch-picker.open').forEach(el => el.classList.remove('open'));
 		}
 		if (!target.closest('.jt-picker')) {
-			document.querySelectorAll('.jt-picker.open').forEach(el => el.classList.remove('open'));
+			jtPickerCreateOpen = false;
+			jtPickerEditOpen = false;
 			jtSearch = '';
 		}
 	}
@@ -431,11 +435,11 @@
 								<span class="bp-arrow">▾</span>
 							</div>
 							<div class="branch-options">
-								<button type="button" class="branch-opt" onclick={() => { createForm.branch_id = ''; }}>
+								<button type="button" class="branch-opt" onclick={(e) => { createForm.branch_id = ''; (e.currentTarget.closest('.branch-picker') as HTMLElement)?.classList.remove('open'); }}>
 									<span class="bp-name">— None —</span>
 								</button>
 								{#each branches as br}
-									<button type="button" class="branch-opt" class:selected={createForm.branch_id === br.id} onclick={() => { createForm.branch_id = br.id; }}>
+									<button type="button" class="branch-opt" class:selected={createForm.branch_id === br.id} onclick={(e) => { createForm.branch_id = br.id; (e.currentTarget.closest('.branch-picker') as HTMLElement)?.classList.remove('open'); }}>
 										<span class="bp-name">{br.branch_name}</span>
 										<span class="bp-loc"><span class="bp-scroll">{[br.address, br.district, br.state].filter(Boolean).join(', ')}</span></span>
 									</button>
@@ -447,8 +451,8 @@
 						<!-- svelte-ignore a11y_label_has_associated_control -->
 						<label>Job Title *</label>
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<div class="jt-picker" onclick={(e) => { e.stopPropagation(); e.currentTarget.classList.add('open'); }} onkeydown={() => {}}>
-							<div class="jt-selected">
+						<div class="jt-picker" class:open={jtPickerCreateOpen}>
+							<div class="jt-selected" onclick={() => { jtPickerCreateOpen = !jtPickerCreateOpen; }}>
 								{#if createForm.job_title_id}
 									{@const sel = jobTitles.find(j => j.id === createForm.job_title_id)}
 									<span class="jt-name">{sel?.title_name ?? ''}</span>
@@ -458,21 +462,23 @@
 								{/if}
 								<span class="jt-arrow">▾</span>
 							</div>
-							<div class="jt-options">
-								<div class="jt-search-wrap">
-									<input type="text" class="jt-search" placeholder="Search job titles..." bind:value={jtSearch} onclick={(e) => e.stopPropagation()} />
+							{#if jtPickerCreateOpen}
+								<div class="jt-options">
+									<div class="jt-search-wrap">
+										<input type="text" class="jt-search" placeholder="Search job titles..." bind:value={jtSearch} />
+									</div>
+									<div class="jt-list">
+										{#each filteredJobTitles as jt}
+											<button type="button" class="jt-opt" class:selected={createForm.job_title_id === jt.id} onclick={() => { createForm.job_title_id = jt.id; jtSearch = ''; jtPickerCreateOpen = false; }}>
+												<span class="jt-name">{jt.title_name}</span>
+												<span class="jt-dept">{jt.department_name}</span>
+											</button>
+										{:else}
+											<div class="jt-empty">No matches</div>
+										{/each}
+									</div>
 								</div>
-								<div class="jt-list">
-									{#each filteredJobTitles as jt}
-										<button type="button" class="jt-opt" class:selected={createForm.job_title_id === jt.id} onclick={() => { createForm.job_title_id = jt.id; jtSearch = ''; }}>
-											<span class="jt-name">{jt.title_name}</span>
-											<span class="jt-dept">{jt.department_name}</span>
-										</button>
-									{:else}
-										<div class="jt-empty">No matches</div>
-									{/each}
-								</div>
-							</div>
+							{/if}
 						</div>
 					</div>
 					<div class="field"><label for="c-sal">Salary Amount (₹)</label><input id="c-sal" type="number" bind:value={createForm.salary_amount} min="0" step="0.01" /></div>
@@ -529,11 +535,11 @@
 								<span class="bp-arrow">▾</span>
 							</div>
 							<div class="branch-options">
-								<button type="button" class="branch-opt" onclick={() => { editForm.branch_id = ''; }}>
+								<button type="button" class="branch-opt" onclick={(e) => { editForm.branch_id = ''; (e.currentTarget.closest('.branch-picker') as HTMLElement)?.classList.remove('open'); }}>
 									<span class="bp-name">— None —</span>
 								</button>
 								{#each branches as br}
-									<button type="button" class="branch-opt" class:selected={editForm.branch_id === br.id} onclick={() => { editForm.branch_id = br.id; }}>
+									<button type="button" class="branch-opt" class:selected={editForm.branch_id === br.id} onclick={(e) => { editForm.branch_id = br.id; (e.currentTarget.closest('.branch-picker') as HTMLElement)?.classList.remove('open'); }}>
 										<span class="bp-name">{br.branch_name}</span>
 										<span class="bp-loc"><span class="bp-scroll">{[br.address, br.district, br.state].filter(Boolean).join(', ')}</span></span>
 									</button>
@@ -545,8 +551,8 @@
 						<!-- svelte-ignore a11y_label_has_associated_control -->
 						<label>Job Title</label>
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<div class="jt-picker" onclick={(e) => { e.stopPropagation(); e.currentTarget.classList.add('open'); }} onkeydown={() => {}}>
-							<div class="jt-selected">
+						<div class="jt-picker" class:open={jtPickerEditOpen}>
+							<div class="jt-selected" onclick={() => { jtPickerEditOpen = !jtPickerEditOpen; }}>
 								{#if editForm.job_title_id}
 									{@const sel = jobTitles.find(j => j.id === editForm.job_title_id)}
 									<span class="jt-name">{sel?.title_name ?? ''}</span>
@@ -556,21 +562,23 @@
 								{/if}
 								<span class="jt-arrow">▾</span>
 							</div>
-							<div class="jt-options">
-								<div class="jt-search-wrap">
-									<input type="text" class="jt-search" placeholder="Search job titles..." bind:value={jtSearch} onclick={(e) => e.stopPropagation()} />
+							{#if jtPickerEditOpen}
+								<div class="jt-options">
+									<div class="jt-search-wrap">
+										<input type="text" class="jt-search" placeholder="Search job titles..." bind:value={jtSearch} />
+									</div>
+									<div class="jt-list">
+										{#each filteredJobTitles as jt}
+											<button type="button" class="jt-opt" class:selected={editForm.job_title_id === jt.id} onclick={() => { editForm.job_title_id = jt.id; jtSearch = ''; jtPickerEditOpen = false; }}>
+												<span class="jt-name">{jt.title_name}</span>
+												<span class="jt-dept">{jt.department_name}</span>
+											</button>
+										{:else}
+											<div class="jt-empty">No matches</div>
+										{/each}
+									</div>
 								</div>
-								<div class="jt-list">
-									{#each filteredJobTitles as jt}
-										<button type="button" class="jt-opt" class:selected={editForm.job_title_id === jt.id} onclick={() => { editForm.job_title_id = jt.id; jtSearch = ''; }}>
-											<span class="jt-name">{jt.title_name}</span>
-											<span class="jt-dept">{jt.department_name}</span>
-										</button>
-									{:else}
-										<div class="jt-empty">No matches</div>
-									{/each}
-								</div>
-							</div>
+							{/if}
 						</div>
 					</div>
 					<div class="field"><label for="e-sal">Salary Amount (₹)</label><input id="e-sal" type="number" bind:value={editForm.salary_amount} min="0" step="0.01" /></div>
