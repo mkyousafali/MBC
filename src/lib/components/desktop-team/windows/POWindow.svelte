@@ -484,6 +484,7 @@
 												<span class="po-item-line1">{item.product_name}</span>
 												<span class="po-item-line2">
 													<span class="po-item-uqty">
+														<button class="btn-minus" onclick={() => { item.base_unit_qty = Math.max(1, (item.base_unit_qty || 1) - 1); }}>−</button>
 														<input class="inline-input base-qty" type="number" min="1" step="1" bind:value={item.base_unit_qty} />
 														<button class="btn-plus" onclick={() => { item.base_unit_qty = (item.base_unit_qty || 1) + 1; }}>+</button>
 													</span>
@@ -495,6 +496,7 @@
 												</span>
 												<span class="po-item-line3">
 													Order Qty:
+													<button class="btn-minus" onclick={() => { item.quantity = Math.max(0, (item.quantity || 0) - 1); }}>−</button>
 													<input class="inline-input qty" type="number" min="0" step="any" bind:value={item.quantity} />
 													<button class="btn-plus" onclick={() => { item.quantity = (item.quantity || 0) + 1; }}>+</button>
 												</span>
@@ -503,6 +505,7 @@
 										</td>
 										<td class="hide-mobile">
 											<div class="qty-row">
+												<button class="btn-minus" onclick={() => { item.base_unit_qty = Math.max(1, (item.base_unit_qty || 1) - 1); }}>−</button>
 												<input class="inline-input base-qty" type="number" min="1" step="1" bind:value={item.base_unit_qty} />
 												<button class="btn-plus" onclick={() => { item.base_unit_qty = (item.base_unit_qty || 1) + 1; }}>+</button>
 											</div>
@@ -516,6 +519,7 @@
 										</td>
 										<td class="hide-mobile">
 											<div class="qty-row">
+												<button class="btn-minus" onclick={() => { item.quantity = Math.max(0, (item.quantity || 0) - 1); }}>−</button>
 												<input class="inline-input qty" type="number" min="0" step="any" bind:value={item.quantity} />
 												<button class="btn-plus" onclick={() => { item.quantity = (item.quantity || 0) + 1; }}>+</button>
 											</div>
@@ -587,6 +591,7 @@
 												<span class="po-item-line1">{item.product_name}</span>
 												<span class="po-item-line2">
 													<span class="po-item-uqty">
+														<button class="btn-minus" onclick={() => { item.base_unit_qty = Math.max(1, (item.base_unit_qty || 1) - 1); }}>−</button>
 														<input class="inline-input base-qty" type="number" min="1" step="1" bind:value={item.base_unit_qty} />
 														<button class="btn-plus" onclick={() => { item.base_unit_qty = (item.base_unit_qty || 1) + 1; }}>+</button>
 													</span>
@@ -598,6 +603,7 @@
 												</span>
 												<span class="po-item-line3">
 													Order Qty:
+													<button class="btn-minus" onclick={() => { item.quantity = Math.max(0, (item.quantity || 0) - 1); }}>−</button>
 													<input class="inline-input qty" type="number" min="0" step="any" bind:value={item.quantity} />
 													<button class="btn-plus" onclick={() => { item.quantity = (item.quantity || 0) + 1; }}>+</button>
 												</span>
@@ -606,6 +612,7 @@
 										</td>
 										<td class="hide-mobile">
 											<div class="qty-row">
+												<button class="btn-minus" onclick={() => { item.base_unit_qty = Math.max(1, (item.base_unit_qty || 1) - 1); }}>−</button>
 												<input class="inline-input base-qty" type="number" min="1" step="1" bind:value={item.base_unit_qty} />
 												<button class="btn-plus" onclick={() => { item.base_unit_qty = (item.base_unit_qty || 1) + 1; }}>+</button>
 											</div>
@@ -619,6 +626,7 @@
 										</td>
 										<td class="hide-mobile">
 											<div class="qty-row">
+												<button class="btn-minus" onclick={() => { item.quantity = Math.max(0, (item.quantity || 0) - 1); }}>−</button>
 												<input class="inline-input qty" type="number" min="0" step="any" bind:value={item.quantity} />
 												<button class="btn-plus" onclick={() => { item.quantity = (item.quantity || 0) + 1; }}>+</button>
 											</div>
@@ -854,6 +862,7 @@
 														<span class="po-item-line1">{item.product_name}</span>
 														<span class="po-item-line2">
 															<span class="po-item-uqty">
+																<button class="btn-minus" onclick={() => { item.base_unit_qty = Math.max(1, (item.base_unit_qty || 1) - 1); }}>−</button>
 																<input class="inline-input base-qty" type="number" min="1" step="1" bind:value={item.base_unit_qty} />
 																<button class="btn-plus" onclick={() => { item.base_unit_qty = (item.base_unit_qty || 1) + 1; }}>+</button>
 															</span>
@@ -865,6 +874,7 @@
 														</span>
 														<span class="po-item-line3">
 															Order Qty:
+															<button class="btn-minus" onclick={() => { item.quantity = Math.max(0, (item.quantity || 0) - 1); }}>−</button>
 															<input class="inline-input qty" type="number" min="0" step="any" bind:value={item.quantity} />
 															<button class="btn-plus" onclick={() => { item.quantity = (item.quantity || 0) + 1; }}>+</button>
 														</span>
@@ -873,6 +883,7 @@
 												</td>
 												<td class="hide-mobile">
 													<div class="qty-row">
+														<button class="btn-minus" onclick={() => { item.base_unit_qty = Math.max(1, (item.base_unit_qty || 1) - 1); }}>−</button>
 														<input class="inline-input base-qty" type="number" min="1" step="1" bind:value={item.base_unit_qty} />
 														<button class="btn-plus" onclick={() => { item.base_unit_qty = (item.base_unit_qty || 1) + 1; }}>+</button>
 													</div>
@@ -886,6 +897,7 @@
 												</td>
 												<td class="hide-mobile">
 													<div class="qty-row">
+														<button class="btn-minus" onclick={() => { item.quantity = Math.max(0, (item.quantity || 0) - 1); }}>−</button>
 														<input class="inline-input qty" type="number" min="0" step="any" bind:value={item.quantity} />
 														<button class="btn-plus" onclick={() => { item.quantity = (item.quantity || 0) + 1; }}>+</button>
 													</div>
@@ -1013,6 +1025,9 @@
 	.qty-row input::-webkit-inner-spin-button, .qty-row input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 	.btn-plus { width: 28px; height: 28px; background: #0E5A3C; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: 700; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 	.btn-plus:hover { background: #0A3F2C; }
+
+	.btn-minus { width: 28px; height: 28px; background: #e53e3e; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: 700; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+	.btn-minus:hover { background: #c53030; }
 
 	.btn-remove { background: none; border: none; color: #ccc; font-size: 14px; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
 	.btn-remove:hover { color: #e53e3e; background: #fee; }
@@ -1252,7 +1267,7 @@
 		.inline-select { font-size: 11px; padding: 4px; }
 
 		.qty-row { gap: 2px; }
-		.btn-plus { width: 24px; height: 24px; font-size: 14px; }
+		.btn-plus, .btn-minus { width: 24px; height: 24px; font-size: 14px; }
 
 		/* Footer */
 		.po-footer {
