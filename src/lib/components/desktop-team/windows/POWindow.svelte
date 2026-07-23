@@ -19,10 +19,10 @@
 
 	type SearchProduct = { id: string; product_code: string; product_name: string; product_type: string; gst_percentage: number; category_name?: string; units: any[] };
 	type UnitMaster = { id: string; unit_name: string; unit_short_code: string };
-	type POItem = { product_id: string; product_code: string; product_name: string; selected_unit: string; quantity: number };
+	type POItem = { product_id: string; product_code: string; product_name: string; selected_unit: string; base_unit_qty: number; quantity: number };
 	type Supplier = { id: string; supplier_code: string; supplier_name: string };
 	type SavedPO = { id: string; po_number: string; po_type: string; po_date: string; status: string; total_amount: number; notes: string | null; supplier_name: string | null; supplier_code: string | null; items_count: number; created_at: string };
-	type PODetailItem = { id: string; product_id: string; product_code: string; product_name: string; unit_name: string; unit_short_code: string; quantity: number };
+	type PODetailItem = { id: string; product_id: string; product_code: string; product_name: string; unit_name: string; unit_short_code: string; conversion_factor: number; quantity: number };
 
 	let activeTab: 'general' | 'supplier' | 'saved' | 'detail' = $state('saved');
 	let allUnits = $state<UnitMaster[]>([]);
@@ -79,6 +79,26 @@
 	}
 
 	function addProductToGeneral(prod: SearchProduct) {
+		if (isEditingDetail) {
+			if (editItems.some(i => i.product_id === prod.id)) {
+				toasts.add('Already in PO', 'info');
+				return;
+			}
+			const baseUnit = prod.units?.find((u: any) => u.is_base_unit) || prod.units?.[0];
+			editItems = [...editItems, {
+				product_id: prod.id,
+				product_code: prod.product_code,
+				product_name: prod.product_name,
+				selected_unit: baseUnit?.unit_name || '',
+				base_unit_qty: 1,
+				quantity: 1
+			}];
+			showProductSearch = false;
+			productSearchQuery = '';
+			productSearchResults = [];
+			return;
+		}
+
 		if (generalItems.some(i => i.product_id === prod.id)) {
 			toasts.add('Already added', 'info');
 			return;
@@ -89,6 +109,7 @@
 			product_code: prod.product_code,
 			product_name: prod.product_name,
 			selected_unit: baseUnit?.unit_name || '',
+			base_unit_qty: 1,
 			quantity: 0
 		}];
 		showProductSearch = false;
@@ -121,6 +142,7 @@
 				product_code: prod.product_code,
 				product_name: prod.product_name,
 				selected_unit: baseUnit?.unit_name || '',
+				base_unit_qty: 1,
 				quantity: 0
 			};
 		});
@@ -137,7 +159,7 @@
 		saving = true;
 		const items = generalItems.map(i => {
 			const u = allUnits.find(x => x.unit_name === i.selected_unit);
-			return { product_id: i.product_id, unit_name: i.selected_unit, unit_short_code: u?.unit_short_code || '', conversion_factor: 1, quantity: i.quantity, unit_price: 0 };
+			return { product_id: i.product_id, unit_name: i.selected_unit, unit_short_code: u?.unit_short_code || '', conversion_factor: i.base_unit_qty, quantity: i.quantity, unit_price: 0 };
 		});
 		const { data, error } = await supabase.rpc('rpc_create_purchase_order', {
 			p_supplier_id: null, p_po_type: 'general', p_notes: generalNotes.trim() || null,
@@ -159,7 +181,7 @@
 		const sup = suppliers.find(s => s.id === selectedSupplierId);
 		const items = activeItems.map(i => {
 			const u = allUnits.find(x => x.unit_name === i.selected_unit);
-			return { product_id: i.product_id, unit_name: i.selected_unit, unit_short_code: u?.unit_short_code || '', conversion_factor: 1, quantity: i.quantity, unit_price: 0 };
+			return { product_id: i.product_id, unit_name: i.selected_unit, unit_short_code: u?.unit_short_code || '', conversion_factor: i.base_unit_qty, quantity: i.quantity, unit_price: 0 };
 		});
 		const { data, error } = await supabase.rpc('rpc_create_purchase_order', {
 			p_supplier_id: selectedSupplierId, p_po_type: 'supplier_specific', p_notes: supplierNotes.trim() || null,
@@ -202,14 +224,98 @@
 		savedSearchTimer = setTimeout(() => loadSavedPOs(), 400);
 	}
 
+	let isEditingDetail = $state(false);
+	let editNotes = $state('');
+	let editStatus = $state('');
+	let editItems = $state<POItem[]>([]);
+	let editSaving = $state(false);
+
 	async function viewPODetail(po: SavedPO) {
 		detailLoading = true;
+		isEditingDetail = false;
 		activeTab = 'detail';
 		const { data, error } = await supabase.rpc('rpc_get_purchase_order_detail', { p_po_id: po.id });
 		detailLoading = false;
 		if (error || !data?.success) { toasts.add('Failed to load PO details', 'error'); activeTab = 'saved'; return; }
 		detailPO = data.po;
 		detailItems = data.items || [];
+	}
+
+	function startEditingDetail() {
+		if (!detailPO) return;
+		editNotes = detailPO.notes || '';
+		editStatus = detailPO.status || 'draft';
+		editItems = detailItems.map((item: any) => ({
+			product_id: item.product_id,
+			product_code: item.product_code,
+			product_name: item.product_name,
+			selected_unit: item.unit_name,
+			base_unit_qty: item.conversion_factor || 1,
+			quantity: item.quantity
+		}));
+		isEditingDetail = true;
+	}
+
+	function cancelEditingDetail() {
+		isEditingDetail = false;
+	}
+
+	function removeEditItem(index: number) {
+		editItems = editItems.filter((_, i) => i !== index);
+	}
+
+	async function saveDetailEdits() {
+		if (!detailPO) return;
+		if (editItems.length === 0) { toasts.add('PO must have at least 1 item', 'warning'); return; }
+		editSaving = true;
+
+		const payloadItems = editItems.map(i => {
+			const u = allUnits.find(x => x.unit_name === i.selected_unit);
+			return { product_id: i.product_id, unit_name: i.selected_unit, unit_short_code: u?.unit_short_code || '', conversion_factor: i.base_unit_qty, quantity: i.quantity, unit_price: 0 };
+		});
+
+		const { data, error } = await supabase.rpc('rpc_update_purchase_order', {
+			p_po_id: detailPO.id,
+			p_notes: editNotes,
+			p_status: editStatus,
+			p_items: payloadItems
+		});
+
+		editSaving = false;
+		if (error || !data?.success) {
+			toasts.add('Failed to update PO: ' + (error?.message || data?.message || ''), 'error');
+			return;
+		}
+
+		toasts.add(`Purchase Order ${detailPO.po_number} updated`, 'success');
+		writeAuditLog({ action: 'update', resourceType: 'purchase_order', resourceId: detailPO.id, resourceLabel: detailPO.po_number });
+		isEditingDetail = false;
+		
+		// Reload detail
+		const res = await supabase.rpc('rpc_get_purchase_order_detail', { p_po_id: detailPO.id });
+		if (res.data?.success) {
+			detailPO = res.data.po;
+			detailItems = res.data.items || [];
+		}
+		loadSavedPOs();
+	}
+
+	async function deletePO(po: SavedPO, e?: Event) {
+		if (e) e.stopPropagation();
+		if (!confirm(`Are you sure you want to delete purchase order ${po.po_number}?`)) return;
+		const { data, error } = await supabase.rpc('rpc_delete_purchase_order', { p_po_id: po.id });
+		if (error || !data?.success) {
+			toasts.add('Failed to delete PO: ' + (error?.message || data?.message || ''), 'error');
+			return;
+		}
+		toasts.add(`Purchase Order ${po.po_number} deleted`, 'success');
+		writeAuditLog({ action: 'delete', resourceType: 'purchase_order', resourceId: po.id, resourceLabel: po.po_number });
+		if (detailPO?.id === po.id) {
+			activeTab = 'saved';
+			detailPO = null;
+			detailItems = [];
+		}
+		loadSavedPOs();
 	}
 
 	function statusLabel(s: string) {
@@ -229,8 +335,9 @@
 
 	// ============ SHARE / PRINT ============
 	let showSharePanel = $state(false);
-	let shareIncludeCode = $state(true);
+	let shareIncludeCode = $state(false);
 	let shareIncludeProduct = $state(true);
+	let shareIncludeUnitQty = $state(true);
 	let shareIncludeUnit = $state(true);
 	let shareIncludeQty = $state(true);
 
@@ -246,9 +353,19 @@
 			let parts: string[] = [`${idx + 1}.`];
 			if (shareIncludeCode) parts.push(item.product_code);
 			if (shareIncludeProduct) parts.push(item.product_name);
-			if (shareIncludeUnit) parts.push(`[${item.unit_name}]`);
-			if (shareIncludeQty) parts.push(`Qty: ${item.quantity}`);
+			if (shareIncludeUnitQty) parts.push(`${item.conversion_factor || 1}`);
+			if (shareIncludeUnit) {
+				const unitStr = item.unit_short_code ? `${item.unit_name} (${item.unit_short_code})` : item.unit_name;
+				parts.push(unitStr);
+			}
+			if (shareIncludeQty) parts.push(`- Qty: ${item.quantity}`);
 			lines.push(parts.join(' '));
+
+			// Total calculation line: (unit qty x order qty) unit short name
+			const totalQty = (Number(item.conversion_factor) || 1) * Number(item.quantity || 0);
+			const shortName = item.unit_short_code || item.unit_name || '';
+			lines.push(`           Total : ${totalQty} ${shortName}`);
+			lines.push(''); // Blank line space after total before next item
 		});
 		if (detailPO.notes) { lines.push(''); lines.push(`Notes: ${detailPO.notes}`); }
 		return lines.join('\n');
@@ -274,9 +391,10 @@
 
 	function printPO() {
 		if (!detailPO) return;
-		const rows = detailItems.map((item: any, idx: number) =>
-			`<tr><td>${idx + 1}</td><td>${item.product_code}</td><td>${item.product_name}</td><td>${item.unit_name}</td><td style="text-align:center">${item.quantity}</td></tr>`
-		).join('');
+		const rows = detailItems.map((item: any, idx: number) => {
+			const unitDisplay = item.unit_short_code ? `${item.unit_name} (${item.unit_short_code})` : item.unit_name;
+			return `<tr><td>${idx + 1}</td><td>${item.product_code}</td><td>${item.product_name}</td><td style="text-align:center">${item.conversion_factor || 1}</td><td>${unitDisplay}</td><td style="text-align:center">${item.quantity}</td></tr>`;
+		}).join('');
 		const html = `<!DOCTYPE html><html><head><title>PO ${detailPO.po_number}</title>
 		<style>
 			@page { size: A4; margin: 20mm; }
@@ -297,7 +415,7 @@
 			${detailPO.supplier_name ? `<span>🚚 ${detailPO.supplier_name} (${detailPO.supplier_code})</span>` : ''}
 			<span>Status: ${statusLabel(detailPO.status)}</span>
 		</div>
-		<table><thead><tr><th>#</th><th>Code</th><th>Product</th><th>Unit</th><th>Qty</th></tr></thead><tbody>${rows}</tbody></table>
+		<table><thead><tr><th>#</th><th>Code</th><th>Product</th><th>Unit Qty</th><th>Unit</th><th>Order Qty</th></tr></thead><tbody>${rows}</tbody></table>
 		${detailPO.notes ? `<div class="notes"><b>Notes:</b> ${detailPO.notes}</div>` : ''}
 		<div class="footer">MBC One OS — Purchase Order</div>
 		</body></html>`;
@@ -350,8 +468,9 @@
 									<th class="col-sno">#</th>
 									<th class="col-code">Code</th>
 									<th class="col-name">Product</th>
+									<th class="col-base">Unit Qty</th>
 									<th class="col-unit">Unit</th>
-									<th class="col-qty">Qty</th>
+									<th class="col-qty">Order Qty</th>
 									<th class="col-action"></th>
 								</tr>
 							</thead>
@@ -360,15 +479,42 @@
 									<tr>
 										<td class="center">{idx + 1}</td>
 										<td class="code">{item.product_code}</td>
-										<td class="name">{item.product_name}</td>
-										<td>
+										<td class="name">
+											<div class="po-item-cell">
+												<span class="po-item-line1">{item.product_name}</span>
+												<span class="po-item-line2">
+													<span class="po-item-uqty">
+														<input class="inline-input base-qty" type="number" min="1" step="1" bind:value={item.base_unit_qty} />
+														<button class="btn-plus" onclick={() => { item.base_unit_qty = (item.base_unit_qty || 1) + 1; }}>+</button>
+													</span>
+													<select class="inline-select po-item-unit-sel" bind:value={item.selected_unit}>
+														{#each allUnits as u}
+															<option value={u.unit_name}>{u.unit_name} ({u.unit_short_code})</option>
+														{/each}
+													</select>
+												</span>
+												<span class="po-item-line3">
+													Order Qty:
+													<input class="inline-input qty" type="number" min="0" step="any" bind:value={item.quantity} />
+													<button class="btn-plus" onclick={() => { item.quantity = (item.quantity || 0) + 1; }}>+</button>
+												</span>
+											</div>
+											<span class="po-desktop-name">{item.product_name}</span>
+										</td>
+										<td class="hide-mobile">
+											<div class="qty-row">
+												<input class="inline-input base-qty" type="number" min="1" step="1" bind:value={item.base_unit_qty} />
+												<button class="btn-plus" onclick={() => { item.base_unit_qty = (item.base_unit_qty || 1) + 1; }}>+</button>
+											</div>
+										</td>
+										<td class="hide-mobile">
 											<select class="inline-select" bind:value={item.selected_unit}>
 												{#each allUnits as u}
 													<option value={u.unit_name}>{u.unit_name} ({u.unit_short_code})</option>
 												{/each}
 											</select>
 										</td>
-										<td>
+										<td class="hide-mobile">
 											<div class="qty-row">
 												<input class="inline-input qty" type="number" min="0" step="any" bind:value={item.quantity} />
 												<button class="btn-plus" onclick={() => { item.quantity = (item.quantity || 0) + 1; }}>+</button>
@@ -425,8 +571,9 @@
 									<th class="col-sno">#</th>
 									<th class="col-code">Code</th>
 									<th class="col-name">Product</th>
+									<th class="col-base">Unit Qty</th>
 									<th class="col-unit">Unit</th>
-									<th class="col-qty">Qty</th>
+									<th class="col-qty">Order Qty</th>
 									<th class="col-action"></th>
 								</tr>
 							</thead>
@@ -435,15 +582,42 @@
 									<tr>
 										<td class="center">{idx + 1}</td>
 										<td class="code">{item.product_code}</td>
-										<td class="name">{item.product_name}</td>
-										<td>
+										<td class="name">
+											<div class="po-item-cell">
+												<span class="po-item-line1">{item.product_name}</span>
+												<span class="po-item-line2">
+													<span class="po-item-uqty">
+														<input class="inline-input base-qty" type="number" min="1" step="1" bind:value={item.base_unit_qty} />
+														<button class="btn-plus" onclick={() => { item.base_unit_qty = (item.base_unit_qty || 1) + 1; }}>+</button>
+													</span>
+													<select class="inline-select po-item-unit-sel" bind:value={item.selected_unit}>
+														{#each allUnits as u}
+															<option value={u.unit_name}>{u.unit_name} ({u.unit_short_code})</option>
+														{/each}
+													</select>
+												</span>
+												<span class="po-item-line3">
+													Order Qty:
+													<input class="inline-input qty" type="number" min="0" step="any" bind:value={item.quantity} />
+													<button class="btn-plus" onclick={() => { item.quantity = (item.quantity || 0) + 1; }}>+</button>
+												</span>
+											</div>
+											<span class="po-desktop-name">{item.product_name}</span>
+										</td>
+										<td class="hide-mobile">
+											<div class="qty-row">
+												<input class="inline-input base-qty" type="number" min="1" step="1" bind:value={item.base_unit_qty} />
+												<button class="btn-plus" onclick={() => { item.base_unit_qty = (item.base_unit_qty || 1) + 1; }}>+</button>
+											</div>
+										</td>
+										<td class="hide-mobile">
 											<select class="inline-select" bind:value={item.selected_unit}>
 												{#each allUnits as u}
 													<option value={u.unit_name}>{u.unit_name} ({u.unit_short_code})</option>
 												{/each}
 											</select>
 										</td>
-										<td>
+										<td class="hide-mobile">
 											<div class="qty-row">
 												<input class="inline-input qty" type="number" min="0" step="any" bind:value={item.quantity} />
 												<button class="btn-plus" onclick={() => { item.quantity = (item.quantity || 0) + 1; }}>+</button>
@@ -498,11 +672,11 @@
 							<thead>
 								<tr>
 									<th>PO Number</th>
-									<th>Type</th>
+									<th class="hide-mobile">Type</th>
 									<th>Supplier</th>
 									<th>Date</th>
 									<th>Items</th>
-									<th>Status</th>
+									<th class="hide-mobile">Status</th>
 									<th>Action</th>
 								</tr>
 							</thead>
@@ -510,12 +684,15 @@
 								{#each savedPOs as po}
 									<tr class="clickable-row" onclick={() => viewPODetail(po)}>
 										<td class="code-bold">{po.po_number}</td>
-										<td><span class="type-tag">{po.po_type === 'general' ? '📋 General' : '🚚 Supplier'}</span></td>
+										<td class="hide-mobile"><span class="type-tag">{po.po_type === 'general' ? '📋 General' : '🚚 Supplier'}</span></td>
 										<td>{po.supplier_name || '—'}</td>
 										<td>{formatDate(po.po_date)}</td>
 										<td class="center">{po.items_count}</td>
-										<td><span class="status-badge {statusClass(po.status)}">{statusLabel(po.status)}</span></td>
-										<td><button class="btn-view" onclick={(e) => { e.stopPropagation(); viewPODetail(po); }}>👁️ View</button></td>
+										<td class="hide-mobile"><span class="status-badge {statusClass(po.status)}">{statusLabel(po.status)}</span></td>
+										<td class="action-cell">
+											<button class="btn-view" onclick={(e) => { e.stopPropagation(); viewPODetail(po); }}>👁️ View</button>
+											<button class="btn-delete" onclick={(e) => deletePO(po, e)}>🗑️ Delete</button>
+										</td>
 									</tr>
 								{/each}
 							</tbody>
@@ -534,74 +711,192 @@
 					<div class="empty-hint">Loading details...</div>
 				{:else if detailPO}
 					<div class="detail-header">
-						<button class="btn-back" onclick={() => { activeTab = 'saved'; }}>← Back to list</button>
+						<button class="btn-back" onclick={() => { activeTab = 'saved'; isEditingDetail = false; }}>← Back to list</button>
 						<h3>{detailPO.po_number}</h3>
-						<span class="status-badge {statusClass(detailPO.status)}">{statusLabel(detailPO.status)}</span>
-					</div>
-
-					<div class="detail-info-grid">
-						<div class="info-item"><span class="info-label">Type</span><span>{detailPO.po_type === 'general' ? '📋 General' : '🚚 Supplier'}</span></div>
-						<div class="info-item"><span class="info-label">Date</span><span>{formatDate(detailPO.po_date)}</span></div>
-						{#if detailPO.supplier_name}
-							<div class="info-item"><span class="info-label">Supplier</span><span>{detailPO.supplier_name} ({detailPO.supplier_code})</span></div>
+						{#if !isEditingDetail}
+							<span class="status-badge {statusClass(detailPO.status)}">{statusLabel(detailPO.status)}</span>
 						{/if}
-						{#if detailPO.notes}
-							<div class="info-item full"><span class="info-label">Notes</span><span>{detailPO.notes}</span></div>
-						{/if}
-						<div class="info-item"><span class="info-label">Created</span><span>{formatDate(detailPO.created_at)}</span></div>
-					</div>
-
-					<h4 class="detail-items-title">📦 Items ({detailItems.length})</h4>
-					<div class="po-table-wrap">
-						<table class="po-table">
-							<thead>
-								<tr>
-									<th class="col-sno">#</th>
-									<th class="col-code">Code</th>
-									<th class="col-name">Product</th>
-									<th class="col-unit">Unit</th>
-									<th class="col-qty">Qty</th>
-								</tr>
-							</thead>
-							<tbody>
-								{#each detailItems as item, idx}
-									<tr>
-										<td class="center">{idx + 1}</td>
-										<td class="code">{item.product_code}</td>
-										<td class="name">{item.product_name}</td>
-										<td>{item.unit_name}</td>
-										<td class="center qty-val">{item.quantity}</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</div>
-
-					<!-- ACTION BUTTONS -->
-					<div class="detail-actions">
-						<button class="btn-print" onclick={printPO}>🖨️ Print A4</button>
-						<button class="btn-share" onclick={() => { showSharePanel = !showSharePanel; }}>📤 Share to WhatsApp</button>
-					</div>
-
-					<!-- SHARE PANEL -->
-					{#if showSharePanel}
-						<div class="share-panel">
-							<h4>📤 Share Options</h4>
-							<p class="share-hint">Select fields to include:</p>
-							<div class="share-checkboxes">
-								<label><input type="checkbox" bind:checked={shareIncludeCode} /> Product Code</label>
-								<label><input type="checkbox" bind:checked={shareIncludeProduct} /> Product Name</label>
-								<label><input type="checkbox" bind:checked={shareIncludeUnit} /> Unit</label>
-								<label><input type="checkbox" bind:checked={shareIncludeQty} /> Quantity</label>
-							</div>
-							<div class="share-preview">
-								<pre>{buildShareText()}</pre>
-							</div>
-							<div class="share-buttons">
-								<button class="btn-wa" onclick={shareToWhatsApp}>
-									💬 {detailPO.supplier_phone ? 'Send to Supplier WhatsApp' : 'Open WhatsApp'}
+						<div class="detail-header-actions">
+							{#if !isEditingDetail}
+								<button class="btn-edit" onclick={startEditingDetail}>✏️ Edit PO</button>
+								<button class="btn-delete" onclick={() => deletePO(detailPO)}>🗑️ Delete PO</button>
+							{:else}
+								<button class="btn-save-sm" onclick={saveDetailEdits} disabled={editSaving}>
+									{editSaving ? 'Saving...' : '💾 Save Changes'}
 								</button>
-								<button class="btn-copy" onclick={copyShareText}>📋 Copy as Text</button>
+								<button class="btn-cancel-sm" onclick={cancelEditingDetail} disabled={editSaving}>Cancel</button>
+							{/if}
+						</div>
+					</div>
+
+					{#if !isEditingDetail}
+						<div class="detail-info-grid">
+							<div class="info-item"><span class="info-label">Type</span><span>{detailPO.po_type === 'general' ? '📋 General' : '🚚 Supplier'}</span></div>
+							<div class="info-item"><span class="info-label">Date</span><span>{formatDate(detailPO.po_date)}</span></div>
+							{#if detailPO.supplier_name}
+								<div class="info-item"><span class="info-label">Supplier</span><span>{detailPO.supplier_name} ({detailPO.supplier_code})</span></div>
+							{/if}
+							{#if detailPO.notes}
+								<div class="info-item full"><span class="info-label">Notes</span><span>{detailPO.notes}</span></div>
+							{/if}
+							<div class="info-item"><span class="info-label">Created</span><span>{formatDate(detailPO.created_at)}</span></div>
+						</div>
+
+						<h4 class="detail-items-title">📦 Items ({detailItems.length})</h4>
+						<div class="po-table-wrap">
+							<table class="po-table">
+								<thead>
+									<tr>
+										<th class="col-sno">#</th>
+										<th class="col-code">Code</th>
+										<th class="col-name">Product</th>
+										<th class="col-base">Unit Qty</th>
+										<th class="col-unit">Unit</th>
+										<th class="col-qty">Order Qty</th>
+									</tr>
+								</thead>
+								<tbody>
+									{#each detailItems as item, idx}
+										<tr>
+											<td class="center">{idx + 1}</td>
+											<td class="code">{item.product_code}</td>
+											<td class="name">
+												<div class="po-item-cell">
+													<span class="po-item-line1">{item.product_name}</span>
+													<span class="po-item-line2">{item.conversion_factor || 1} {item.unit_name}{#if item.unit_short_code} ({item.unit_short_code}){/if}</span>
+													<span class="po-item-line3">Order Qty: {item.quantity}</span>
+												</div>
+												<span class="po-desktop-name">{item.product_name}</span>
+											</td>
+											<td class="center qty-val hide-mobile">{item.conversion_factor || 1}</td>
+											<td class="hide-mobile">{item.unit_name}{#if item.unit_short_code} ({item.unit_short_code}){/if}</td>
+											<td class="center qty-val hide-mobile">{item.quantity}</td>
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+						</div>
+
+						<!-- ACTION BUTTONS -->
+						<div class="detail-actions">
+							<button class="btn-print" onclick={printPO}>🖨️ Print A4</button>
+							<button class="btn-share" onclick={() => { showSharePanel = !showSharePanel; }}>📤 Share to WhatsApp</button>
+						</div>
+
+						<!-- SHARE PANEL -->
+						{#if showSharePanel}
+							<div class="share-panel">
+								<h4>📤 Share Options</h4>
+								<p class="share-hint">Select fields to include:</p>
+								<div class="share-checkboxes">
+									<label><input type="checkbox" bind:checked={shareIncludeCode} /> Product Code</label>
+									<label><input type="checkbox" bind:checked={shareIncludeProduct} /> Product Name</label>
+									<label><input type="checkbox" bind:checked={shareIncludeUnitQty} /> Unit Qty</label>
+									<label><input type="checkbox" bind:checked={shareIncludeUnit} /> Unit</label>
+									<label><input type="checkbox" bind:checked={shareIncludeQty} /> Quantity</label>
+								</div>
+								<div class="share-preview">
+									<pre>{buildShareText()}</pre>
+								</div>
+								<div class="share-buttons">
+									<button class="btn-wa" onclick={shareToWhatsApp}>
+										💬 {detailPO.supplier_phone ? 'Send to Supplier WhatsApp' : 'Open WhatsApp'}
+									</button>
+									<button class="btn-copy" onclick={copyShareText}>📋 Copy as Text</button>
+								</div>
+							</div>
+						{/if}
+					{:else}
+						<!-- EDIT MODE FORM -->
+						<div class="edit-po-box">
+							<div class="edit-fields-row">
+								<div class="field-group">
+									<label for="po-status-sel">PO Status:</label>
+									<select id="po-status-sel" class="inline-select" bind:value={editStatus}>
+										<option value="draft">Draft</option>
+										<option value="submitted">Submitted</option>
+										<option value="approved">Approved</option>
+										<option value="received">Received</option>
+										<option value="cancelled">Cancelled</option>
+									</select>
+								</div>
+								<div class="field-group flex-1">
+									<label for="po-notes-input">Notes:</label>
+									<input id="po-notes-input" type="text" class="saved-search" placeholder="Add notes..." bind:value={editNotes} />
+								</div>
+							</div>
+
+							<div class="edit-items-header">
+								<h4>Items in PO ({editItems.length})</h4>
+								<button class="btn-add-product" onclick={() => { showProductSearch = true; }}>+ Add Product</button>
+							</div>
+
+							<div class="po-table-wrap">
+								<table class="po-table">
+									<thead>
+										<tr>
+											<th class="col-sno">#</th>
+											<th class="col-code">Code</th>
+											<th class="col-name">Product</th>
+											<th class="col-base">Unit Qty</th>
+											<th class="col-unit">Unit</th>
+											<th class="col-qty">Order Qty</th>
+											<th class="col-action"></th>
+										</tr>
+									</thead>
+									<tbody>
+										{#each editItems as item, idx}
+											<tr>
+												<td class="center">{idx + 1}</td>
+												<td class="code">{item.product_code}</td>
+												<td class="name">
+													<div class="po-item-cell">
+														<span class="po-item-line1">{item.product_name}</span>
+														<span class="po-item-line2">
+															<span class="po-item-uqty">
+																<input class="inline-input base-qty" type="number" min="1" step="1" bind:value={item.base_unit_qty} />
+																<button class="btn-plus" onclick={() => { item.base_unit_qty = (item.base_unit_qty || 1) + 1; }}>+</button>
+															</span>
+															<select class="inline-select po-item-unit-sel" bind:value={item.selected_unit}>
+																{#each allUnits as u}
+																	<option value={u.unit_name}>{u.unit_name} ({u.unit_short_code})</option>
+																{/each}
+															</select>
+														</span>
+														<span class="po-item-line3">
+															Order Qty:
+															<input class="inline-input qty" type="number" min="0" step="any" bind:value={item.quantity} />
+															<button class="btn-plus" onclick={() => { item.quantity = (item.quantity || 0) + 1; }}>+</button>
+														</span>
+													</div>
+													<span class="po-desktop-name">{item.product_name}</span>
+												</td>
+												<td class="hide-mobile">
+													<div class="qty-row">
+														<input class="inline-input base-qty" type="number" min="1" step="1" bind:value={item.base_unit_qty} />
+														<button class="btn-plus" onclick={() => { item.base_unit_qty = (item.base_unit_qty || 1) + 1; }}>+</button>
+													</div>
+												</td>
+												<td class="hide-mobile">
+													<select class="inline-select" bind:value={item.selected_unit}>
+														{#each allUnits as u}
+															<option value={u.unit_name}>{u.unit_name} ({u.unit_short_code})</option>
+														{/each}
+													</select>
+												</td>
+												<td class="hide-mobile">
+													<div class="qty-row">
+														<input class="inline-input qty" type="number" min="0" step="any" bind:value={item.quantity} />
+														<button class="btn-plus" onclick={() => { item.quantity = (item.quantity || 0) + 1; }}>+</button>
+													</div>
+												</td>
+												<td class="center">
+													<button class="btn-remove" onclick={() => removeEditItem(idx)}>✕</button>
+												</td>
+											</tr>
+										{/each}
+									</tbody>
+								</table>
 							</div>
 						</div>
 					{/if}
@@ -651,7 +946,7 @@
 <style>
 	.po-window { height: 100%; display: flex; flex-direction: column; background: #F8F8F5; }
 
-	.tab-bar { display: flex; background: white; border-bottom: 1px solid #E8E8E8; }
+	.tab-bar { display: flex; background: white; border-bottom: 1px solid #E8E8E8; flex-shrink: 0; }
 	.tab { flex: 1; padding: 14px 16px; border: none; background: none; font-size: 13px; font-weight: 600; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
 	.tab:hover { color: #555; background: #fafafa; }
 	.tab.active { color: #0E5A3C; border-bottom-color: #0E5A3C; }
@@ -689,8 +984,17 @@
 	.col-sno { width: 36px; text-align: center; }
 	.col-code { width: 100px; }
 	.col-name { min-width: 180px; }
+
+	/* Mobile card layout - hidden on desktop */
+	.po-item-cell { display: none; }
+	.po-item-line1 { display: none; }
+	.po-item-line2 { display: none; }
+	.po-item-line3 { display: none; }
+	.po-item-uqty { display: none; }
+	.po-desktop-name { display: inline; }
 	.col-unit { width: 160px; }
 	.col-qty { width: 90px; }
+	.col-base { width: 70px; }
 	.col-action { width: 36px; }
 
 	.center { text-align: center; }
@@ -703,6 +1007,7 @@
 	.inline-input { padding: 5px 6px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; background: #fafafa; text-align: right; }
 	.inline-input:focus { outline: none; border-color: #0E5A3C; background: white; }
 	.inline-input.qty { width: 75px; }
+	.inline-input.base-qty { width: 55px; }
 	.qty-row { display: flex; gap: 4px; align-items: center; }
 	.qty-row input { flex: 1; min-width: 0; -moz-appearance: textfield; }
 	.qty-row input::-webkit-inner-spin-button, .qty-row input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
@@ -765,11 +1070,30 @@
 	.btn-view { background: none; border: 1px solid #E8E8E8; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; color: #555; }
 	.btn-view:hover { background: #f0f0f0; }
 
+	.action-cell { display: flex; gap: 6px; align-items: center; }
+	.btn-delete { background: #FFF5F5; border: 1px solid #FED7D7; color: #E53E3E; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 500; }
+	.btn-delete:hover { background: #FED7D7; }
+
 	.btn-load-more { width: 100%; padding: 10px; margin-top: 12px; background: white; border: 1px solid #E8E8E8; border-radius: 8px; font-size: 13px; color: #0E5A3C; font-weight: 600; cursor: pointer; }
 
 	/* Detail */
 	.detail-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
 	.detail-header h3 { margin: 0; font-size: 18px; color: #0E5A3C; font-weight: 700; }
+	.detail-header-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+	.btn-edit { background: #EBF5FB; border: 1px solid #AED6F1; color: #2980B9; padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600; }
+	.btn-edit:hover { background: #D4E6F1; }
+	.btn-save-sm { background: #0E5A3C; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+	.btn-save-sm:hover { background: #0A3F2C; }
+	.btn-cancel-sm { background: #f0f0f0; color: #555; border: 1px solid #ddd; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+	.btn-cancel-sm:hover { background: #e0e0e0; }
+
+	.edit-po-box { background: #fafafa; border: 1px solid #e8e8e8; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+	.edit-fields-row { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; }
+	.field-group { display: flex; align-items: center; gap: 8px; }
+	.field-group.flex-1 { flex: 1; }
+	.field-group label { font-size: 13px; font-weight: 600; color: #555; white-space: nowrap; }
+	.edit-items-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+	.edit-items-header h4 { margin: 0; font-size: 14px; color: #0E5A3C; font-weight: 700; }
 	.btn-back { background: none; border: none; font-size: 13px; color: #0E5A3C; font-weight: 600; cursor: pointer; padding: 4px 0; }
 	.btn-back:hover { text-decoration: underline; }
 
@@ -798,9 +1122,197 @@
 	.share-checkboxes input[type="checkbox"] { accent-color: #0E5A3C; width: 16px; height: 16px; }
 	.share-preview { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; margin-bottom: 12px; max-height: 160px; overflow-y: auto; }
 	.share-preview pre { margin: 0; font-size: 12px; white-space: pre-wrap; word-break: break-word; color: #333; font-family: inherit; }
-	.share-buttons { display: flex; gap: 10px; }
-	.btn-wa { padding: 10px 20px; background: #25D366; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
-	.btn-wa:hover { background: #1da851; }
-	.btn-copy { padding: 10px 20px; background: white; color: #333; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
-	.btn-copy:hover { background: #f5f5f5; }
+	/* Mobile Responsive Styles */
+	@media (max-width: 768px) {
+		.po-window {
+			min-height: auto;
+		}
+
+		.tab-bar {
+			overflow-x: auto;
+			-webkit-overflow-scrolling: touch;
+		}
+
+		.tab {
+			padding: 10px 12px;
+			font-size: 12px;
+			white-space: nowrap;
+		}
+
+		.tab-content {
+			padding: 4px;
+		}
+
+		.po-section {
+			padding: 6px;
+			border-radius: 8px;
+		}
+
+		.section-header {
+			flex-wrap: wrap;
+			gap: 8px;
+		}
+
+		.supplier-select-bar {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 8px;
+		}
+
+		.supplier-sticky-top {
+			top: -10px;
+			padding: 10px 0 0;
+		}
+
+		/* Saved PO search filters on mobile */
+		.saved-filters {
+			flex-direction: column;
+			gap: 8px;
+		}
+
+		.saved-search, .saved-status-filter {
+			width: 100%;
+			box-sizing: border-box;
+		}
+
+		/* Tables horizontal scrolling on mobile */
+		.po-table-wrap {
+			max-height: calc(100vh - 280px);
+			overflow-x: auto;
+			-webkit-overflow-scrolling: touch;
+		}
+
+		.po-table {
+			width: 100%;
+			table-layout: auto;
+		}
+
+		.po-table th, .po-table td {
+			padding: 6px 4px;
+			font-size: 12px;
+		}
+
+		.col-code { display: none; } /* Hide code column header on mobile */
+		.po-table td.code { display: none; } /* Hide code column cells on mobile */
+		.col-base, .col-unit, .col-qty { display: none; } /* Hide Unit Qty, Unit, Order Qty headers */
+		.hide-mobile { display: none !important; }
+
+		/* Mobile stacked card inside Name cell */
+		.po-item-cell {
+			display: flex !important;
+			flex-direction: column;
+			gap: 6px;
+		}
+
+		.po-item-line1 {
+			display: block !important;
+			font-weight: 600;
+			font-size: 13px;
+			color: #333;
+		}
+
+		.po-item-line2 {
+			display: flex !important;
+			gap: 6px;
+			align-items: center;
+			flex-wrap: wrap;
+		}
+
+		.po-item-uqty {
+			display: inline-flex !important;
+			gap: 3px;
+			align-items: center;
+		}
+
+		.po-item-unit-sel {
+			flex: 1;
+			min-width: 100px;
+		}
+
+		.po-item-line3 {
+			display: flex !important;
+			gap: 6px;
+			align-items: center;
+			font-size: 12px;
+			font-weight: 600;
+			color: #0E5A3C;
+		}
+
+		/* Hide the plain product name text shown on desktop */
+		.po-desktop-name {
+			display: none !important;
+		}
+
+		.col-name {
+			min-width: auto;
+		}
+
+		.inline-input.qty { width: 55px; }
+		.inline-input.base-qty { width: 45px; }
+		.inline-select { font-size: 11px; padding: 4px; }
+
+		.qty-row { gap: 2px; }
+		.btn-plus { width: 24px; height: 24px; font-size: 14px; }
+
+		/* Footer */
+		.po-footer {
+			position: sticky;
+			bottom: 0;
+			background: white;
+			flex-direction: column;
+			align-items: stretch;
+			gap: 10px;
+			padding: 12px 4px;
+			margin: 0 -4px;
+			box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+			z-index: 10;
+		}
+
+		.btn-save {
+			width: 100%;
+			padding: 12px;
+		}
+
+		/* Search Popup Modal */
+		.search-popup {
+			width: 95vw;
+			max-height: 85vh;
+			margin: 10px;
+		}
+
+		.edit-fields-row {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 10px;
+		}
+
+		.detail-info-grid {
+			grid-template-columns: 1fr;
+			gap: 8px;
+			padding: 12px;
+		}
+
+		.detail-header {
+			flex-wrap: wrap;
+			gap: 8px;
+		}
+
+		.detail-header-actions {
+			margin-left: 0;
+			width: 100%;
+			justify-content: flex-end;
+		}
+
+		.share-checkboxes {
+			gap: 10px;
+		}
+
+		.share-buttons {
+			flex-direction: column;
+		}
+
+		.share-buttons button {
+			width: 100%;
+		}
+	}
 </style>

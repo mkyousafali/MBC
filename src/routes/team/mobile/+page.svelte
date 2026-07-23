@@ -75,7 +75,10 @@
 
 <style>
 	.mobile-home {
-		padding: 0;
+		padding: 12px;
+		height: 100%;
+		overflow-y: auto;
+		box-sizing: border-box;
 	}
 
 	/* Info Cards */

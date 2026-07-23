@@ -336,32 +336,44 @@
 				<div class="table-wrap">
 					<table class="data-table">
 						<thead><tr>
-							<th>Code</th><th>Name</th><th>Username</th><th>Branch</th><th>Job Title</th>
-							<th>WhatsApp</th><th>Salary</th><th>Status</th><th>Actions</th>
+							<th class="hide-mobile">Code</th>
+							<th>Name</th>
+							<th class="hide-mobile">Username</th>
+							<th class="hide-mobile">Branch</th>
+							<th class="hide-mobile">Job Title</th>
+							<th>Contact</th>
+							<th class="hide-mobile">Salary</th>
+							<th class="hide-mobile">Status</th>
+							<th>Actions</th>
 						</tr></thead>
 						<tbody>
 							{#each employees as emp}
 								<tr>
-									<td class="mono">{emp.employee_code}</td>
-									<td>{emp.full_name}</td>
-									<td class="mono">{emp.username}</td>
-									<td>{emp.branch_name || '—'}</td>
-									<td>{emp.job_title_name}</td>
+									<td class="mono hide-mobile">{emp.employee_code}</td>
+									<td>
+										<div class="emp-name-cell">
+											<span class="emp-title">{emp.full_name}</span>
+											<span class="emp-meta-mobile">{emp.employee_code} • {emp.job_title_name}</span>
+										</div>
+									</td>
+									<td class="mono hide-mobile">{emp.username}</td>
+									<td class="hide-mobile">{emp.branch_name || '—'}</td>
+									<td class="hide-mobile">{emp.job_title_name}</td>
 									<td>{emp.whatsapp_number}</td>
-							<td class="num">₹{emp.salary_amount.toLocaleString()} <span class="sal-type">/{emp.salary_type}</span></td>
-									<td><span class="status-badge" class:st-active={emp.employment_status === 'active'} class:st-inactive={emp.employment_status !== 'active'}>{emp.employment_status}</span></td>
-								<td class="actions-cell">
-									{#if permEdit}<button class="btn-sm" onclick={() => startEdit(emp)}>Edit</button>{/if}
-									<button
-										class="status-toggle"
-										class:active={emp.employment_status === 'active'}
-										disabled={!permEdit}
-										title={permEdit ? (emp.employment_status === 'active' ? 'Deactivate' : 'Activate') : 'No permission'}
-										onclick={() => toggleUserStatus(emp)}
-									>
-										<span class="toggle-knob"></span>
-									</button>
-								</td>
+									<td class="num hide-mobile">₹{emp.salary_amount.toLocaleString()} <span class="sal-type">/{emp.salary_type}</span></td>
+									<td class="hide-mobile"><span class="status-badge" class:st-active={emp.employment_status === 'active'} class:st-inactive={emp.employment_status !== 'active'}>{emp.employment_status}</span></td>
+									<td class="actions-cell">
+										{#if permEdit}<button class="btn-sm" onclick={() => startEdit(emp)}>Edit</button>{/if}
+										<button
+											class="status-toggle"
+											class:active={emp.employment_status === 'active'}
+											disabled={!permEdit}
+											title={permEdit ? (emp.employment_status === 'active' ? 'Deactivate' : 'Activate') : 'No permission'}
+											onclick={() => toggleUserStatus(emp)}
+										>
+											<span class="toggle-knob"></span>
+										</button>
+									</td>
 								</tr>
 							{/each}
 						</tbody>
@@ -588,7 +600,7 @@
 
 <style>
 	.users-window { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
-	.toolbar { display: flex; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border); margin-bottom: 12px; flex-shrink: 0; }
+	.toolbar { display: flex; gap: 8px; padding: 12px 8px; border-bottom: 1px solid var(--color-border); margin-bottom: 12px; flex-shrink: 0; }
 	.toolbar-btn { padding: 8px 16px; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-white); color: var(--color-text-secondary); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
 	.toolbar-btn:hover { background: var(--color-bg); }
 	.toolbar-btn.active { background: #0E5A3C; color: white; border-color: #0E5A3C; }
@@ -745,4 +757,28 @@
 	.jt-opt .jt-name { font-size: 13px; }
 	.jt-opt .jt-dept { font-size: 11px; }
 	.jt-empty { padding: 12px; text-align: center; font-size: 12px; color: #999; }
+
+	.emp-name-cell { display: flex; flex-direction: column; }
+	.emp-title { font-weight: 600; }
+	.emp-meta-mobile { display: none; font-size: 10px; color: #888; margin-top: 2px; }
+
+	@media (max-width: 768px) {
+		.hide-mobile { display: none !important; }
+		.emp-meta-mobile { display: block; }
+		.list-controls { flex-wrap: wrap; gap: 8px; }
+		.list-controls .search-box { flex: 1 1 100%; }
+		.list-controls .filter-select { flex: 1 1 45%; }
+		.form-grid { grid-template-columns: 1fr; }
+		.form-card { padding: 14px; }
+		.tab-content { padding: 4px; }
+		.form-actions {
+			position: sticky;
+			bottom: 0;
+			background: white;
+			padding: 12px 4px;
+			margin: 0 -4px;
+			box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+			z-index: 10;
+		}
+	}
 </style>

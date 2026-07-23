@@ -677,22 +677,27 @@
 				<div class="table-wrap">
 					<table class="data-table">
 						<thead><tr>
-							<th class="col-sl">#</th>
-							<th>Code</th>
+							<th class="col-sl hide-mobile">#</th>
+							<th class="hide-mobile">Code</th>
 							<th>Name</th>
-							<th>Contact</th>
+							<th class="hide-mobile">Contact</th>
 							<th>Shift</th>
-							<th>Hours</th>
-							<th>Since</th>
+							<th class="hide-mobile">Hours</th>
+							<th class="hide-mobile">Since</th>
 							<th>Action</th>
 						</tr></thead>
 						<tbody>
 							{#each filteredEmployees as emp, i}
 								<tr>
-									<td class="col-sl">{i + 1}</td>
-									<td class="col-code">{emp.employee_code}</td>
-									<td class="col-name">{emp.full_name}</td>
-									<td class="col-phone">{emp.whatsapp_number}</td>
+									<td class="col-sl hide-mobile">{i + 1}</td>
+									<td class="col-code hide-mobile">{emp.employee_code}</td>
+									<td class="col-name">
+										<div class="emp-name-cell">
+											<span class="emp-title">{emp.full_name}</span>
+											<span class="emp-meta-mobile">{emp.employee_code} • {emp.whatsapp_number}</span>
+										</div>
+									</td>
+									<td class="col-phone hide-mobile">{emp.whatsapp_number}</td>
 									<td class="col-shift">
 										{#if emp.shifts && emp.shifts.length > 0}
 											{#each emp.shifts as s, si}
@@ -703,8 +708,8 @@
 											<span class="no-shift">No shift</span>
 										{/if}
 									</td>
-									<td class="col-hours">{emp.shifts && emp.shifts.length > 0 ? emp.total_hours + 'h' : '—'}</td>
-									<td class="col-date">{formatDate(emp.shift_start_date)}</td>
+									<td class="col-hours hide-mobile">{emp.shifts && emp.shifts.length > 0 ? emp.total_hours + 'h' : '—'}</td>
+									<td class="col-date hide-mobile">{formatDate(emp.shift_start_date)}</td>
 									<td class="col-action">
 										{#if emp.shifts && emp.shifts.length > 0}
 											{#if permEdit}<button class="btn-action btn-change" onclick={() => openChange(emp)}>Change</button>{/if}
@@ -1296,6 +1301,7 @@
 		backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
 		border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+		flex-shrink: 0;
 	}
 	.tab-btn {
 		display: flex; align-items: center; gap: 8px; padding: 10px 20px;
@@ -1445,4 +1451,25 @@
 	.btn-del { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; }
 	.btn-del:hover { background: #fecaca; }
 	.checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; flex-direction: row !important; }
+	.emp-name-cell { display: flex; flex-direction: column; }
+	.emp-title { font-weight: 600; }
+	.emp-meta-mobile { display: none; font-size: 10px; color: #888; margin-top: 2px; }
+
+	@media (max-width: 768px) {
+		.hide-mobile { display: none !important; }
+		.emp-meta-mobile { display: block; }
+		.tab-bar { flex-wrap: wrap; }
+		.tab-btn { flex: 1 1 auto; padding: 8px 12px; font-size: 12px; justify-content: center; }
+		.tab-content { padding: 8px; }
+		.table-search input { max-width: 100%; }
+		.modal-overlay { padding: 10px; }
+		.modal-box { width: 100% !important; max-width: 100% !important; max-height: 90vh; border-radius: 12px; }
+		.modal-body { padding: 12px; gap: 12px; }
+		.form-row { flex-direction: column; gap: 10px; }
+		.time-row { flex-wrap: wrap; justify-content: space-between; }
+		.time-row select { flex: 1 1 30%; min-width: 60px; }
+		.shift-summary { flex-direction: column; gap: 8px; }
+		.add-entry-row { flex-direction: column !important; gap: 10px; align-items: stretch; }
+		.btn-add-entry { width: 100%; }
+	}
 </style>

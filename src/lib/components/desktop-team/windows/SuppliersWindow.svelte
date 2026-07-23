@@ -369,28 +369,33 @@
 							<table>
 								<thead>
 									<tr>
-										<th>Code</th>
+										<th class="hide-mobile">Code</th>
 										<th>Supplier Name</th>
-										<th>Contact</th>
+										<th class="hide-mobile">Contact</th>
 										<th>Phone</th>
-										<th>GSTIN</th>
-										<th>Terms</th>
-										<th>Mode</th>
-										<th>Status</th>
+										<th class="hide-mobile">GSTIN</th>
+										<th class="hide-mobile">Terms</th>
+										<th class="hide-mobile">Mode</th>
+										<th class="hide-mobile">Status</th>
 										{#if permEdit}<th>Actions</th>{/if}
 									</tr>
 								</thead>
 								<tbody>
 									{#each suppliers as sup}
 										<tr>
-											<td class="code">{sup.supplier_code}</td>
-											<td>{sup.supplier_name}</td>
-											<td>{sup.contact_person || '—'}</td>
-											<td>{sup.phone || '—'}</td>
-											<td>{sup.gstin || '—'}</td>
-											<td class="terms">{formatTerms(sup.payment_terms, sup.credit_period_days)}</td>
-											<td class="terms">{sup.payment_mode === 'bank' ? 'Bank' : 'Cash'}</td>
+											<td class="code hide-mobile">{sup.supplier_code}</td>
 											<td>
+												<div class="sup-name-cell">
+													<span class="sup-title">{sup.supplier_name}</span>
+													<span class="sup-meta-mobile">{sup.supplier_code} • {sup.contact_person || 'No Contact'}</span>
+												</div>
+											</td>
+											<td class="hide-mobile">{sup.contact_person || '—'}</td>
+											<td>{sup.phone || '—'}</td>
+											<td class="hide-mobile">{sup.gstin || '—'}</td>
+											<td class="terms hide-mobile">{formatTerms(sup.payment_terms, sup.credit_period_days)}</td>
+											<td class="terms hide-mobile">{sup.payment_mode === 'bank' ? 'Bank' : 'Cash'}</td>
+											<td class="hide-mobile">
 												<span class="badge" class:active={sup.is_active} class:inactive={!sup.is_active}>
 													{sup.is_active ? 'Active' : 'Inactive'}
 												</span>
@@ -440,6 +445,7 @@
 		display: flex;
 		background: white;
 		border-bottom: 1px solid #E8E8E8;
+		flex-shrink: 0;
 	}
 
 	.tab {
@@ -619,6 +625,72 @@
 	}
 
 	tbody tr:hover { background: #f9f9f7; }
+
+	.code { font-family: monospace; font-size: 12px; color: #0E5A3C; font-weight: 600; }
+
+	.terms { font-size: 12px; color: #666; }
+
+	.badge {
+		display: inline-block;
+		padding: 2px 8px;
+		border-radius: 10px;
+		font-size: 11px;
+		font-weight: 600;
+	}
+	.badge.active { background: #e6f4ec; color: #0E5A3C; }
+	.badge.inactive { background: #fce8e8; color: #c53030; }
+
+	.loading-msg, .empty-msg {
+		text-align: center;
+		padding: 40px 20px;
+		color: #999;
+		font-size: 14px;
+	}
+
+	.pagination {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 12px;
+		padding: 16px;
+	}
+
+	.pagination button {
+		padding: 6px 14px;
+		border: 1px solid #ddd;
+		border-radius: 6px;
+		background: white;
+		font-size: 12px;
+		cursor: pointer;
+	}
+	.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+	.pagination span { font-size: 12px; color: #777; }
+
+	.sup-name-cell { display: flex; flex-direction: column; }
+	.sup-title { font-weight: 600; }
+	.sup-meta-mobile { display: none; font-size: 10px; color: #888; margin-top: 2px; }
+
+	@media (max-width: 768px) {
+		.hide-mobile { display: none !important; }
+		.sup-meta-mobile { display: block; }
+		.form-grid { grid-template-columns: 1fr; }
+		.form-card { padding: 14px; }
+		.tab-content { padding: 4px; }
+		.form-container { padding: 4px; }
+		.manage-container { padding: 4px; }
+		.search-bar { flex-wrap: wrap; }
+		.search-bar input { flex: 1 1 100%; }
+		.search-bar select { flex: 1 1 45%; }
+		.form-actions {
+			position: sticky;
+			bottom: 0;
+			background: white;
+			padding: 12px 4px;
+			margin: 0 -4px;
+			box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+			z-index: 10;
+		}
+	}
 
 	.code { font-family: monospace; font-size: 12px; color: #0E5A3C; font-weight: 600; }
 

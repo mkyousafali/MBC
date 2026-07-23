@@ -322,9 +322,9 @@
 				p_max_stock: createForm.max_stock || 0,
 				p_reorder_level: createForm.reorder_level || 0,
 				p_is_active: true,
-				p_units: JSON.stringify(units),
-				p_barcodes: JSON.stringify(barcodes),
-				p_variants: JSON.stringify(variants)
+				p_units: units,
+				p_barcodes: barcodes,
+				p_variants: variants
 			});
 			createLoading = false;
 			if (error) { toasts.add('Update failed: ' + error.message, 'error'); return; }
@@ -1026,32 +1026,37 @@
 							<table>
 								<thead>
 									<tr>
-										<th>Code</th>
+										<th class="hide-mobile">Code</th>
 										<th>Product Name</th>
-										<th>Type</th>
-										<th>Category</th>
-										<th>Base Unit</th>
-										<th>Supplier</th>
-										<th>Units</th>
-										<th>Variants</th>
-										<th>GST</th>
-										<th>Status</th>
+										<th class="hide-mobile">Type</th>
+										<th class="hide-mobile">Category</th>
+										<th class="hide-mobile">Base Unit</th>
+										<th class="hide-mobile">Supplier</th>
+										<th class="hide-mobile">Units</th>
+										<th class="hide-mobile">Variants</th>
+										<th class="hide-mobile">GST</th>
+										<th class="hide-mobile">Status</th>
 										<th>Actions</th>
 									</tr>
 								</thead>
 								<tbody>
 									{#each products as prod}
 										<tr>
-											<td class="code">{prod.product_code}</td>
-											<td>{prod.product_name}</td>
-											<td><span class="type-badge {typeBadgeClass(prod.product_type)}">{typeLabel(prod.product_type)}</span></td>
-											<td>{prod.category_name || '—'}</td>
-											<td>{prod.base_unit || '—'}</td>
-											<td>{prod.default_supplier_name || '—'}</td>
-											<td class="center">{prod.units_count}</td>
-											<td class="center">{prod.variants_count}</td>
-											<td class="center">{prod.gst_percentage}%</td>
-											<td><span class="badge" class:active={prod.is_active} class:inactive={!prod.is_active}>{prod.is_active ? 'Active' : 'Inactive'}</span></td>
+											<td class="code hide-mobile">{prod.product_code}</td>
+											<td>
+												<div class="prod-name-cell">
+													<span class="prod-title">{prod.product_name}</span>
+													<span class="prod-meta-mobile">{prod.product_code} • <span class="type-badge {typeBadgeClass(prod.product_type)}">{typeLabel(prod.product_type)}</span></span>
+												</div>
+											</td>
+											<td class="hide-mobile"><span class="type-badge {typeBadgeClass(prod.product_type)}">{typeLabel(prod.product_type)}</span></td>
+											<td class="hide-mobile">{prod.category_name || '—'}</td>
+											<td class="hide-mobile">{prod.base_unit || '—'}</td>
+											<td class="hide-mobile">{prod.default_supplier_name || '—'}</td>
+											<td class="center hide-mobile">{prod.units_count}</td>
+											<td class="center hide-mobile">{prod.variants_count}</td>
+											<td class="center hide-mobile">{prod.gst_percentage}%</td>
+											<td class="hide-mobile"><span class="badge" class:active={prod.is_active} class:inactive={!prod.is_active}>{prod.is_active ? 'Active' : 'Inactive'}</span></td>
 											<td class="actions-cell">
 												<button class="btn-ghost btn-xs" onclick={() => viewDetail(prod)}>👁️</button>
 												{#if permEdit}<button class="btn-ghost btn-xs" onclick={() => startEditProduct(prod)}>✏️</button>{/if}
@@ -1100,7 +1105,7 @@
 <style>
 	.products-window { height: 100%; display: flex; flex-direction: column; background: #F8F8F5; }
 
-	.tab-bar { display: flex; background: white; border-bottom: 1px solid #E8E8E8; }
+	.tab-bar { display: flex; background: white; border-bottom: 1px solid #E8E8E8; flex-shrink: 0; }
 	.tab { flex: 1; padding: 14px 16px; border: none; background: none; font-size: 13px; font-weight: 600; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
 	.tab:hover { color: #555; background: #fafafa; }
 	.tab.active { color: #0E5A3C; border-bottom-color: #0E5A3C; }
@@ -1120,8 +1125,33 @@
 
 	.hint-inline { font-size: 11px; font-weight: 400; color: #999; }
 
-	.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-	.form-grid.three-col { grid-template-columns: 1fr 1fr 1fr; }
+	.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+	.form-grid.three-col { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+
+	.prod-name-cell { display: flex; flex-direction: column; }
+	.prod-title { font-weight: 600; }
+	.prod-meta-mobile { display: none; font-size: 10px; color: #888; margin-top: 2px; }
+
+	@media (max-width: 768px) {
+		.hide-mobile { display: none !important; }
+		.prod-meta-mobile { display: block; }
+		.search-bar { flex-wrap: wrap; }
+		.search-bar input { flex: 1 1 100%; }
+		.search-bar select { flex: 1 1 45%; }
+		.form-grid { grid-template-columns: 1fr; }
+		.form-grid.three-col { grid-template-columns: 1fr; }
+		.form-card { padding: 14px; }
+		.form-container { padding: 4px; }
+		.variant-header { display: none; }
+		.variant-row { flex-wrap: wrap; gap: 8px; }
+		.v-type, .v-value, .v-price, .v-sku { flex: 1 1 100%; }
+		.detail-panel { padding: 12px; }
+		.detail-header { flex-wrap: wrap; gap: 8px; }
+		.detail-header h3 { font-size: 14px; word-break: break-word; }
+		.detail-info { grid-template-columns: 1fr 1fr; gap: 10px; }
+		.detail-section { overflow-x: auto; max-width: 100%; }
+		.table-wrap { max-height: none; }
+	}
 
 	.field { display: flex; flex-direction: column; gap: 4px; }
 	.field label { font-size: 11px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.3px; }
@@ -1215,7 +1245,7 @@
 	.actions-cell { display: flex; gap: 4px; }
 
 	/* Detail Panel */
-	.detail-panel { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+	.detail-panel { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); overflow-x: auto; }
 	.detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #eee; }
 	.detail-header h3 { margin: 0; font-size: 15px; font-weight: 700; color: #2B2B2B; }
 	.detail-header-actions { display: flex; gap: 6px; align-items: center; }
@@ -1309,4 +1339,60 @@
 	.supplier-chip { padding: 6px 12px; background: #f0faf5; border: 1px solid #c8e6d8; border-radius: 6px; font-size: 12px; font-weight: 600; color: #0E5A3C; }
 	.btn-remove-sm { border: none; background: none; color: #999; font-size: 14px; cursor: pointer; padding: 2px 4px; }
 	.btn-remove-sm:hover { color: #e53e3e; }
+
+	/* Mobile responsive styles */
+	@media (max-width: 768px) {
+		.form-grid {
+			grid-template-columns: 1fr !important;
+		}
+
+		.form-card {
+			padding: 14px;
+		}
+
+		.modal-box {
+			width: 90vw;
+			padding: 16px;
+		}
+
+		.search-bar {
+			flex-direction: column;
+		}
+
+		.search-bar input, .search-bar select {
+			width: 100%;
+			box-sizing: border-box;
+		}
+
+		.hide-mobile {
+			display: none !important;
+		}
+
+		.prod-name-cell {
+			display: flex;
+			flex-direction: column;
+			gap: 2px;
+		}
+
+		.prod-meta-mobile {
+			display: inline;
+			font-size: 10px;
+			color: #888;
+		}
+
+		.form-actions-sticky {
+			position: sticky;
+			bottom: 0;
+			padding: 12px 4px;
+			margin: 0 -4px;
+			box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+			z-index: 10;
+		}
+	}
+
+	@media (min-width: 769px) {
+		.prod-meta-mobile {
+			display: none;
+		}
+	}
 </style>

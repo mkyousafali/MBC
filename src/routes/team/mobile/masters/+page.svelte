@@ -52,7 +52,7 @@
 </div>
 
 <style>
-	.masters-page { padding: 16px; }
+	.masters-page { padding: 16px; height: 100%; overflow-y: auto; box-sizing: border-box; }
 	.empty { text-align: center; padding: 60px 20px; color: #888; font-size: 14px; }
 
 	.menu-grid { display: flex; flex-direction: column; gap: 10px; }
