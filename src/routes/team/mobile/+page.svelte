@@ -71,6 +71,12 @@
 			<span class="grid-label">Clock In / Out</span>
 		</a>
 	</div>
+
+	<!-- Branding / Logos at bottom -->
+	<div class="home-logos">
+		<img src="/Logo.png" alt="Store Logo" class="brand-logo store-logo" />
+		<img src="/App Logo.png" alt="App Logo" class="brand-logo app-logo" />
+	</div>
 </div>
 
 <style>
@@ -79,6 +85,8 @@
 		height: 100%;
 		overflow-y: auto;
 		box-sizing: border-box;
+		display: flex;
+		flex-direction: column;
 	}
 
 	/* Info Cards */
@@ -201,5 +209,35 @@
 		font-size: 13px;
 		font-weight: 600;
 		text-align: center;
+	}
+
+	/* Home Logos Footer */
+	.home-logos {
+		margin-top: auto;
+		padding: 24px 8px 16px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		width: 100%;
+		box-sizing: border-box;
+	}
+	.brand-logo {
+		height: 120px;
+		max-width: 44vw;
+		width: auto;
+		object-fit: contain;
+		padding: 10px;
+		border-radius: 16px;
+		background: white;
+		border: 2px solid transparent;
+		filter: drop-shadow(0 4px 10px rgba(0,0,0,0.08));
+		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+		cursor: pointer;
+	}
+	.brand-logo:hover {
+		border-color: #f97316;
+		box-shadow: 0 0 16px rgba(249, 115, 22, 0.4), 0 6px 20px rgba(249, 115, 22, 0.2);
+		transform: translateY(-4px) scale(1.05);
 	}
 </style>
