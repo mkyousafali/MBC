@@ -2,7 +2,7 @@
 	import { openWindow, sidebarCollapsed } from '$lib/stores/windows';
 	import { teamUser, userPermissions } from '$lib/stores/auth';
 
-	let collapsed = $state(false);
+	let collapsed = $state(true);
 	let currentUser = $state<{ full_name: string; username: string; is_super_admin: boolean } | null>(null);
 	let perms = $state<any[]>([]);
 
@@ -58,8 +58,8 @@
 	}
 
 	// Expand state
-	let expandedSections = $state<Set<string>>(new Set(['Settings']));
-	let expandedSubs = $state<Set<string>>(new Set(['Management']));
+	let expandedSections = $state<Set<string>>(new Set());
+	let expandedSubs = $state<Set<string>>(new Set());
 
 	function toggleSection(s: string) {
 		if (expandedSections.has(s)) expandedSections.delete(s);
