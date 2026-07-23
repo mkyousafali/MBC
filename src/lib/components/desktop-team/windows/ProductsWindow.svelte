@@ -162,7 +162,12 @@
 	let baseUnitImage = $state('');
 	let baseUnitImageUploading = $state(false);
 
+	const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+
 	async function uploadImage(file: File, label: string): Promise<string> {
+		if (file.size > MAX_FILE_SIZE) {
+			throw new Error(`File size (${(file.size / (1024 * 1024)).toFixed(1)} MB) exceeds maximum allowed size of 50 MB`);
+		}
 		const ext = file.name.split('.').pop() || 'jpg';
 		const path = `${crypto.randomUUID()}.${ext}`;
 		const { error } = await supabase.storage.from('product-images').upload(path, file, { contentType: file.type });
